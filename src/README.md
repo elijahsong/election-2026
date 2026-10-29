@@ -51,6 +51,12 @@ This writes every `acs.csv` column plus six comparison columns. `acs.csv` itself
 - **Rounding:** the comparison values are rounded like the district values, so at-large districts come out as exactly 0.
 - **Log ratios** are computed as `log1p((x − ref) / ref)`, which stays accurate when the ratio is close to 1.
 - **Rebuilds:** every run rebuilds the whole file from `acs.csv`.
+- **2026:** it has no ACS vintage of its own. `notebooks/03c-demographics-2026.ipynb` fills it with 2024 1-year values:
+  - Unchanged districts copy their 2024 rows (`2024_1yr`).
+  - Districts in redrawn states are rebuilt from 2020–2024 block groups and adjusted to the 2024 1-year (`2024_1yr_rebuilt`).
+
+  `REFERENCE_YEAR = {2026: 2024}` makes 2026 compare against 2024 1-year national and state values. Only such borrowed-vintage
+  years may carry the `_rebuilt` label.
 
 ## Boundaries and caveats
 
@@ -89,3 +95,49 @@ This writes every `acs.csv` column plus six comparison columns. `acs.csv` itself
 | avg_household_size | 0.003 | 0.005 |
 
 These errors are well below the ACS's own margins of error for districts. The live test `test_live_rebuild_matches_published_116th_districts` re-runs this check.
+
+# House incumbency (`incumbency.py`)
+
+```bash
+python src/incumbency.py                # -> data/interim/incumbency.csv (downloads and caches CAGE on first run)
+```
+
+Builds one row per House election year and district for 2006–2026, keyed `year, state, district` like `acs.csv`.
+
+## Schema
+
+`year,state,district,inc,inc_signed,incumbent_party,incumbent_names,status,source`
+
+| Column | Meaning |
+|---|---|
+| `inc` | 1 if an incumbent is running in the general election, 0 for an open seat |
+| `inc_signed` | +1 for a Democratic incumbent, −1 for a Republican, 0 for an open seat. Blank when it isn't a single major party; never treat blank as 0 |
+| `status` | `incumbent`, `open`, `override: …`, or `review: …` (the blank `inc_signed` rows) |
+
+## Sources
+
+- **2006–2024:** Cha, Kuriwaki & Snyder, *Candidates in American General Elections* (CAGE), Harvard Dataverse,
+  [doi:10.7910/DVN/DGDRDT](https://doi.org/10.7910/DVN/DGDRDT), v4.1, CC0.
+  - Only House general-election candidates are used (`office = H`, `type = G`). A candidate with CAGE `inc` above 0 is an
+    incumbent: 1 regular, 2 won a special election, 3 appointed.
+  - The file is checksum-pinned and cached in `data/raw/cage/`.
+  - CAGE numbers at-large seats 1. They are renumbered 0, and every year's districts are checked against
+    `data/reference/district_counts.json`.
+- **2026:** Cook's 2026 PVI list (`data/raw/pvi.sources/cook_pvi_public_2026.csv`), which is on the 2026 lines.
+  - `OPEN (…)` rows are open seats; their party column is the departing member's.
+  - Every other row's incumbent runs with the listed party.
+
+## Overrides
+
+`OVERRIDES` is applied after both sources are combined. Each override must match exactly one row. They cover:
+
+- **Source corrections:**
+  - TX-34 2024: Mayra Flores is coded as an incumbent, but she lost in 2022, so the row becomes +1 (Gonzalez).
+  - MI-7 2006 and KS-1 2016: the incumbent lost the primary and ran as a write-in, so the rows become open (0).
+- **Incumbents of both parties in one redrawn district, resolved by hand:**
+  - IA-3 2012 (Latham) and OH-16 2012 (Renacci) are coded −1, as Republican incumbents.
+  - PA-17 2018, FL-2 2022 and TX-34 2022 are coded open (0).
+- **CA-6 2026:** Cook lists Kevin Kiley as an independent; he's coded −1, as a Republican incumbent.
+
+With these, every row has an `inc_signed` value. A new unresolved case would show up as `status = review: …` with a blank
+`inc_signed`.

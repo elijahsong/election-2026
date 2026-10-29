@@ -16,6 +16,22 @@ SUPPLEMENT_COLUMNS = [
 ]
 NATIONAL_GEO = {"for": "us:1"}
 STATE_GEO = {"for": "state:*"}
+# Election years with no ACS vintage of their own -> the election year whose vintage their rows are on. 2026's rows
+# (notebooks/03c) are 2024 1-year values: copied for unchanged districts, or rebuilt and adjusted to the 2024 1-year
+# (acs_vintage "2024_1yr_rebuilt") for redrawn ones, so they are compared with 2024 1-year national and state values.
+REFERENCE_YEAR = {2026: 2024}
+REBUILT_SUFFIX = "_rebuilt"
+
+
+def reference_year(year: int) -> int:
+    """The election year whose ACS vintage supplies a year's national and state comparison values."""
+    return REFERENCE_YEAR.get(year, year)
+
+
+def allowed_vintages(year: int) -> set[str]:
+    """acs_vintage labels a year's rows may carry: its vintage, plus its rebuilt variant for borrowed-vintage years."""
+    label = acs.acs_vintage_label(reference_year(year))
+    return {label, label + REBUILT_SUFFIX} if year in REFERENCE_YEAR else {label}
 
 
 def read_acs(path: str | Path) -> pd.DataFrame:
@@ -31,8 +47,9 @@ def read_acs(path: str | Path) -> pd.DataFrame:
         raise ValueError(f"{path} has missing or non-positive college, income, or unemployment values")
     for year, vintages in df.groupby("year")["acs_vintage"]:
         # national and state references are fetched from this same vintage, so it must be the mapped one
-        if set(vintages) != {acs.acs_vintage_label(int(year))}:
-            raise ValueError(f"{path} {year} rows use {sorted(set(vintages))}, expected {acs.acs_vintage_label(int(year))}")
+        allowed = allowed_vintages(int(year))
+        if not set(vintages) <= allowed:
+            raise ValueError(f"{path} {year} rows use {sorted(set(vintages))}, expected {' or '.join(sorted(allowed))}")
     return df
 
 
@@ -92,10 +109,13 @@ def build_supplement(input_path: str | Path = "data/interim/acs.csv",
         raise ValueError("Write the supplement to a separate file; acs.py only accepts its own schema in acs.csv")
     df = read_acs(input_path)
     key = acs.census_key()
+    references = {}  # reference year -> (national, states), so a borrowed vintage is fetched once
     parts = []
     for year, rows in tqdm(df.groupby("year"), desc="ACS supplement", unit="year"):
-        national, states = fetch_reference(int(year), key)
-        parts.append(add_relative_columns(rows, national, states))
+        ref = reference_year(int(year))
+        if ref not in references:
+            references[ref] = fetch_reference(ref, key)
+        parts.append(add_relative_columns(rows, *references[ref]))
 
     out = pd.concat(parts).sort_values(["year", "state", "district"], ignore_index=True)
     if not np.isfinite(out[SUPPLEMENT_COLUMNS].to_numpy()).all():

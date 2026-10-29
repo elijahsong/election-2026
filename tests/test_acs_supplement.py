@@ -82,6 +82,41 @@ def test_rejects_unexpected_vintage(acs_csv, tmp_path):
         acs_supplement.build_supplement(bad, tmp_path / "out.csv")
 
 
+@pytest.fixture
+def borrowed_csv(acs_csv, tmp_path, monkeypatch):
+    """acs_csv plus a 2026 copy of the 2018 rows (half labelled rebuilt), with 2026 borrowing 2018's vintage."""
+    monkeypatch.setattr(acs_supplement, "REFERENCE_YEAR", {2026: 2018})
+    df = pd.read_csv(acs_csv)
+    y26 = df[df["year"] == 2018].assign(year=2026)
+    y26.loc[y26.index[::2], "acs_vintage"] = "2018_1yr_rebuilt"
+    path = tmp_path / "with_2026.csv"
+    pd.concat([df, y26]).to_csv(path, index=False)
+    return path
+
+
+def test_borrowed_vintage_year_uses_reference_values(borrowed_csv, tmp_path):
+    out = acs_supplement.build_supplement(borrowed_csv, tmp_path / "out.csv")
+    cols = ["state", "district", *acs_supplement.SUPPLEMENT_COLUMNS]
+    y18, y26 = (out.loc[out["year"] == y, cols].reset_index(drop=True) for y in (2018, 2026))
+    pd.testing.assert_frame_equal(y26, y18)
+    assert set(out.loc[out["year"] == 2026, "acs_vintage"]) == {"2018_1yr", "2018_1yr_rebuilt"}
+
+
+def test_rebuilt_label_only_allowed_for_borrowed_years(borrowed_csv, tmp_path):
+    bad = tmp_path / "bad.csv"
+    df = pd.read_csv(borrowed_csv)
+    df.loc[df["year"] == 2018, "acs_vintage"] = "2018_1yr_rebuilt"
+    df.to_csv(bad, index=False)
+    with pytest.raises(ValueError, match="expected 2018_1yr$"):
+        acs_supplement.build_supplement(bad, tmp_path / "out.csv")
+
+    df = pd.read_csv(borrowed_csv)
+    df.loc[df["year"] == 2026, "acs_vintage"] = "2016-2020_5yr"
+    df.to_csv(bad, index=False)
+    with pytest.raises(ValueError, match="expected 2018_1yr or 2018_1yr_rebuilt"):
+        acs_supplement.build_supplement(bad, tmp_path / "out.csv")
+
+
 def test_missing_reference_estimate_raises(acs_csv, fake_api, tmp_path):
     fake_api(2018)["state:*"][0]["B19013_001E"] = "-666666666"
     with pytest.raises(ValueError, match="AL: B19013_001E"):
