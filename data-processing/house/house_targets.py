@@ -1,18 +1,20 @@
 """Build observed U.S. House general-election results from MEDSL's candidate-level returns
-(data/reference/1976-2024-house.tab), in data/processed/house. Nothing is imputed.
+(data/raw/1976-2024-house.tab), in data/processed/house. Nothing is imputed.
 
   targets_raw.csv    one row per year, state, district, 1976-2024, exactly as observed
   targets.csv        the Stage 1 targets: targets_raw.csv's rows from FIRST_YEAR (2006, the first year of modeling.csv)
-                     on, except that jungle and RCV targets are left to imputation (IMPUTE_RACE_TYPES) and a
-                     cross-endorsed candidate counts for their larger line (flag cross_endorsed_assigned)
+                     on, except that jungle and RCV targets are left to imputation (IMPUTE_RACE_TYPES), a
+                     cross-endorsed candidate counts for their larger line (flag cross_endorsed_assigned), and eight
+                     D-R races are uncontested (TREATED_UNCONTESTED, flagged with the reason)
   targets_supp.csv   a companion to targets.csv, from FIRST_YEAR on: one row per year, state, district, contest for
-                     every key whose source has more than one contest or whose race is jungle or RCV. contest is
+                     every key whose source has more than one contest or whose race is jungle or RCV, and the actual
+                     result of every key whose targets.csv race is *_vs_3p or TREATED_UNCONTESTED. contest is
                      first_round (the November round, the one the targets use), runoff (a December runoff), or special
                      (a same-day special for the unexpired term). It isn't joined into either targets file; it is kept
                      for future imputation of adj_margin_2p_norm, post-processing and model evaluation.
   targets_candidates.csv  one row per year, state, district, contest, candidate of every targets_supp.csv contest:
                      each candidate's line-summed votes (plus aggregate write-in and non-vote rows), so a jungle or RCV
-                     race's per-candidate breakdown is kept. It joins to targets_supp.csv on year, state, district,
+                     race's (or an imputed race's) per-candidate breakdown is kept. It joins to targets_supp.csv on year, state, district,
                      contest, and its votes add up to that file's party totals and candidate counts.
 
 Votes:
@@ -53,7 +55,10 @@ Targets: adj_margin_2p_norm = margin_2p_norm for DR_TYPES rows with reported vot
   In targets.csv only: dr_jungle and dr_rcv rows have blank targets and needs_imputation True (their combined D vs R
   vote is the target, to be filled by imputation from targets_raw.csv / targets_supp.csv; the vote columns are kept),
   and a cross-endorsed candidate who was the only major-party candidate counts for their larger line, which sets
-  race_type, the candidate count and winner_party (none from 2006 on; D/R votes stay blank).
+  race_type, the candidate count and winner_party (none from 2006 on; D/R votes stay blank). The TREATED_UNCONTESTED
+  rows (write-in-only major party, a major party finishing third, a voided election) become <party>_uncontested, or
+  <party>_vs_3p with a named third-party candidate, by the winner's party, with blank targets and needs_imputation
+  True, for the uncontested imputation; their vote columns and candidate counts are kept as observed.
 
 winner_party (D, R, 3P): the runoff's top candidate where the source has the runoff, else the contest's own.
   Blank on a tie or a cross-endorsed winner, and in a jungle round whose leader has at most 50% and whose runoff the
@@ -64,7 +69,7 @@ is_rcv: ME from 2018 and AK from 2022 (RCV_FROM). The first-round result is want
   later round, and 2018 matches neither round. Rows keep what the source gives.
 
 Official corrections: every 2006-2024 Louisiana race was checked against Louisiana's official results
-  (data/reference/la_sos). In six (LA-2 2006, LA-5/6 2014, LA-3/4 2016, LA-5 2020) MEDSL gives the top two candidates'
+  (data/raw/la_sos). In six (LA-2 2006, LA-5/6 2014, LA-3/4 2016, LA-5 2020) MEDSL gives the top two candidates'
   December runoff totals in place of their November counts; LA_OFFICIAL replaces them with the official November counts
   (flag official_results_correction; `source` names both sources). It also adds the official runoffs of those six and
   LA-3 2012 as runoff contests. Every other race matches the official November results.
@@ -92,9 +97,9 @@ from house.regression.schema import (
     TARGET_SUPP_COLUMNS, TARGETS_CANDIDATES_SCHEMA, TARGETS_SCHEMA, TARGETS_SUPP_SCHEMA, validate_schema,
 )
 
-SOURCE_PATH = ROOT / "data/reference/1976-2024-house.tab"
+SOURCE_PATH = ROOT / "data/raw/1976-2024-house.tab"
 DISTRICT_COUNTS_PATH = ROOT / "data/reference/district_counts.json"
-LA_OFFICIAL_DIR = ROOT / "data/reference/la_sos"  # Louisiana SOS official results; see its README.md
+LA_OFFICIAL_DIR = ROOT / "data/raw/la_sos"  # Louisiana SOS official results; see its README.md
 OUTPUT_DIR = ROOT / "data/processed/house"
 FIRST_YEAR = 2006
 
@@ -139,6 +144,24 @@ PARTY_OVERRIDES = {
     (2006, "TX", 22, "SHELLEY SEKULA GIBBS"): "REPUBLICAN",  # write-in nominee after DeLay withdrew
     (2002, "VA", 9, "J KATZEN"): "REPUBLICAN",  # Jay Katzen, against Boucher
 }
+# Races with a D and an R whose D vs R margin isn't a contested result, treated as uncontested in targets.csv: the
+# race_type becomes the winner's party + _uncontested, or _vs_3p with a named third-party candidate, and the target is
+# left to the uncontested imputation. key -> the flag naming the reason (house_targets_choices.md, sections 3 and 10)
+TREATED_UNCONTESTED = {
+    # the other major party had only write-ins. TX-22 2006 (Sekula-Gibbs, the Republican write-in nominee, in a real
+    # two-party race) keeps its target and stays dr_writein
+    (2016, "AZ", 3): "writein_treated_uncontested",
+    (2022, "AZ", 8): "writein_treated_uncontested",
+    (2022, "AZ", 9): "writein_treated_uncontested",
+    (2022, "WI", 8): "writein_treated_uncontested",
+    # a major party finished third, behind an independent who was the real opponent
+    (2006, "TN", 9): "major_party_third_treated_uncontested",  # Cohen (D) 59.9, Jake Ford (I) 22.2, R 18.0
+    (2008, "CA", 8): "major_party_third_treated_uncontested",  # Pelosi (D) 71.9, Cindy Sheehan (I) 16.2, R 9.7
+    (2022, "MT", 2): "major_party_third_treated_uncontested",  # Rosendale (R) 56.6, Gary Buchanan (I) 21.9, D 20.2
+    # the result was never certified (absentee-ballot fraud) and the election was rerun in 2019
+    (2018, "NC", 9): "voided_election_treated_uncontested",
+}
+TREATED_UNCONTESTED_FLAGS = sorted(set(TREATED_UNCONTESTED.values()))
 DR_TYPES = ["dr", "dr_multi", "dr_jungle", "dr_rcv", "dr_writein"]
 # dr_multi's extra candidates are almost always a party write-in with a handful of votes next to the nominee; every
 # other race_type is flagged is_nonstandard_race
@@ -399,10 +422,31 @@ def build_targets(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Data
     targets.loc[unresolved, "winner_party"] = pd.Series(cross_line, index=targets.index)
     targets.loc[assign, "quality_flags"] = targets.loc[assign, "quality_flags"].fillna("").str.split(";").map(
         lambda f: ";".join([x for x in f if x and x != "winner_party_unresolved"] + ["cross_endorsed_assigned"]))
+    # TREATED_UNCONTESTED races: uncontested, by the winner's party, with the target left to imputation; the vote
+    # columns and candidate counts are kept as observed (main checks that every key was applied)
+    for key, flag in TREATED_UNCONTESTED.items():
+        row = at(targets, *key)
+        if not row.any():
+            continue
+        race_type, winner = targets.loc[row, "race_type"].item(), targets.loc[row, "winner_party"].item()
+        if race_type not in DR_TYPES or winner not in ("D", "R"):
+            raise ValueError(f"TREATED_UNCONTESTED {key} is {race_type} won by {winner}, not a D-R race won by D or R")
+        has_3p = targets.loc[row, "3p_candidate_count"].item() > 0
+        side = {"D": "dem", "R": "gop"}[winner]
+        targets.loc[row, "race_type"] = side + ("_vs_3p" if has_3p else "_uncontested")
+        targets.loc[row, ["adj_margin_2p_norm", "is_imputed"]] = None
+        targets.loc[row, ["needs_imputation", "is_nonstandard_race"]] = True
+        flags = targets.loc[row, "quality_flags"].item()
+        targets.loc[row, "quality_flags"] = f"{flags};{flag}" if pd.notna(flags) else flag
     targets = targets.reset_index(drop=True)
 
-    # targets_supp.csv, from FIRST_YEAR: every contest of the keys with more than one, or a jungle or RCV first round
-    impute_keys = pd.MultiIndex.from_frame(first.loc[first["race_type"].isin(IMPUTE_RACE_TYPES), KEY])
+    # targets_supp.csv, from FIRST_YEAR: every contest of the keys with more than one, or a jungle or RCV first round,
+    # plus the actual result of every *_vs_3p or TREATED_UNCONTESTED race (whose targets.csv target is imputed), with
+    # its candidates in targets_candidates.csv
+    treated = targets["quality_flags"].fillna("").str.contains("|".join(TREATED_UNCONTESTED_FLAGS))
+    imputed_with_opponent = targets.loc[targets["race_type"].isin(["dem_vs_3p", "gop_vs_3p"]) | treated, KEY]
+    impute_keys = pd.MultiIndex.from_frame(pd.concat(
+        [first.loc[first["race_type"].isin(IMPUTE_RACE_TYPES), KEY], imputed_with_opponent]))
     in_supp = out.duplicated(KEY, keep=False) | pd.MultiIndex.from_frame(out[KEY]).isin(impute_keys)
     supp = out[in_supp & (out["year"] >= FIRST_YEAR)].reset_index(drop=True)[TARGET_SUPP_COLUMNS]
 
@@ -453,7 +497,9 @@ def report(out: pd.DataFrame, targets: pd.DataFrame, supp: pd.DataFrame, source:
          f"{targets['adj_margin_2p_norm'].notna().sum()}, "
          f"needs_imputation {int(targets['needs_imputation'].sum())} "
          f"(of which {int(targets['race_type'].isin(IMPUTE_RACE_TYPES).sum())} jungle / RCV), cross-endorsed assigned "
-         f"{int(targets['quality_flags'].fillna('').str.contains('cross_endorsed_assigned').sum())}"),
+         f"{int(targets['quality_flags'].fillna('').str.contains('cross_endorsed_assigned').sum())}, treated as "
+         f"uncontested: " + ", ".join(f"{flag} {int(targets['quality_flags'].fillna('').str.contains(flag).sum())}"
+                                      for flag in TREATED_UNCONTESTED_FLAGS)),
         (f"targets_supp.csv (from {FIRST_YEAR}): {len(supp)} contests of {len(supp.drop_duplicates(KEY))} keys ("
          + ", ".join(f"{k} {v}" for k, v in supp["contest"].value_counts().items()) + ")"),
     ]
@@ -474,6 +520,9 @@ def main() -> None:
                    "targets_candidates.csv": validate_schema(candidates_out, schema=TARGETS_CANDIDATES_SCHEMA,
                                                              key=CANDIDATE_KEY)}
     problems = check_coverage(raw, json.loads(DISTRICT_COUNTS_PATH.read_text()))
+    n_treated = targets["quality_flags"].fillna("").str.contains("|".join(TREATED_UNCONTESTED_FLAGS)).sum()
+    if n_treated != len(TREATED_UNCONTESTED):
+        problems.append(f"TREATED_UNCONTESTED: {n_treated} of {len(TREATED_UNCONTESTED)} keys applied")
     print(report(raw, targets, supp, source))
     print(f"targets_candidates.csv: {len(candidates_out)} rows for {len(supp)} contests")
     for name, validation in validations.items():

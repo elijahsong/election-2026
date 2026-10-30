@@ -122,7 +122,7 @@ python data-processing/house/house_features.py   # -> data/processed/house/{basi
 # House election targets (`house_targets.py`)
 
 ```bash
-python data-processing/house/house_targets.py   # data/reference/1976-2024-house.tab -> data/processed/house/targets*.csv
+python data-processing/house/house_targets.py   # data/raw/1976-2024-house.tab -> data/processed/house/targets*.csv
 ```
 
 Built from MEDSL's candidate-level returns ([codebook](../data/reference/codebook-us-house-1976–2024.md)), using
@@ -131,11 +131,11 @@ observed results only: nothing is imputed or filled in. Each run validates all f
 | File | Rows | Key |
 |---|---|---|
 | `targets_raw.csv` | Every House general election from 1976 to 2024, 435 a year (10,875), exactly as observed | `year, state, district` |
-| `targets.csv` | **The Stage 1 targets**: the rows from 2006 (`FIRST_YEAR`, the first year of `modeling.csv`) to 2024 (4,350), with the two changes below | `year, state, district` |
-| `targets_supp.csv` | Companion to `targets.csv`, from 2006: every contest of the districts whose source has more than one or whose race is jungle or RCV (55 contests in 51 districts); see below | `year, state, district, contest` |
-| `targets_candidates.csv` | The candidates of every `targets_supp.csv` contest (274 rows); see below | `year, state, district, contest, candidate` |
+| `targets.csv` | **The Stage 1 targets**: the rows from 2006 (`FIRST_YEAR`, the first year of `modeling.csv`) to 2024 (4,350), with the three changes below | `year, state, district` |
+| `targets_supp.csv` | Companion to `targets.csv`, from 2006: every contest of the districts whose source has more than one or whose race is jungle or RCV, plus the actual result of every imputed `*_vs_3p` or treated-as-uncontested race (268 contests in 259 districts); see below | `year, state, district, contest` |
+| `targets_candidates.csv` | The candidates of every `targets_supp.csv` contest (879 rows); see below | `year, state, district, contest, candidate` |
 
-`targets.csv` differs from `targets_raw.csv`'s 2006–2024 rows in two ways:
+`targets.csv` differs from `targets_raw.csv`'s 2006–2024 rows in three ways:
 - **Jungle and RCV targets are left blank** (`IMPUTE_RACE_TYPES`: 40 `dr_jungle` and 10 `dr_rcv` rows), with
   `needs_imputation` `True`. The combined D vs R first-round vote is the right target. The next step
   (`house_impute_targets_jungle_rcv.py`, below) sets it as observed. `targets_raw.csv` keeps it as observed. The vote
@@ -143,6 +143,19 @@ observed results only: nothing is imputed or filled in. Each run validates all f
 - **A cross-endorsed candidate counts for their larger line** (D or R) when they were the only major-party candidate.
   That sets `race_type` (e.g. `dem_uncontested`), the candidate count and `winner_party`, and the row is flagged
   `cross_endorsed_assigned`. D/R votes stay blank. No row from 2006 on is cross-endorsed, so this changes nothing yet.
+- **Eight D-R races are treated as uncontested** (`TREATED_UNCONTESTED`), because their D vs R margin isn't a
+  contested result. Each becomes the winner's party + `_uncontested`, or `_vs_3p` with a named third-party candidate.
+  Its target is blank with `needs_imputation` `True`, for the uncontested imputation, and the row is flagged with the
+  reason. The vote columns and candidate counts are kept as observed, and the actual result, with its candidates, is
+  in `targets_supp.csv` / `targets_candidates.csv`.
+
+  | Flag | Races | New `race_type` |
+  |---|---|---|
+  | `writein_treated_uncontested` (the other major party had only write-ins) | AZ-3 2016; AZ-8, AZ-9, WI-8 2022 | `dem_uncontested`; `gop_uncontested` ×2, `gop_vs_3p` |
+  | `major_party_third_treated_uncontested` (a major party finished behind an independent) | TN-9 2006, CA-8 2008, MT-2 2022 | `dem_vs_3p` ×2, `gop_vs_3p` |
+  | `voided_election_treated_uncontested` (never certified; rerun in 2019) | NC-9 2018 | `gop_vs_3p` |
+
+  TX-22 2006 stays `dr_writein` with its target: Sekula-Gibbs was the Republican write-in nominee in a real race.
 
 Both files have the columns `TARGET_COLUMNS` followed by `TARGET_PROVENANCE_COLUMNS`, both in
 `src/house/regression/schema.py`, and `TARGETS_SCHEMA` types every column. Row counts below cover 1976–2024, with
@@ -183,7 +196,7 @@ It also writes `data-processing/house/exceptions.csv`: one row per `race_type` w
 python data-processing/house/house_impute_targets_uncontested.py   # after the jungle / RCV step; rewrites targets.csv in place
 ```
 
-Imputes the 462 rows of `UNCONTESTED_RACE_TYPES` (`dem_vs_3p` through `no_major_party` in `RACE_TYPES` order), which
+Imputes the 470 rows of `UNCONTESTED_RACE_TYPES` (`dem_vs_3p` through `no_major_party` in `RACE_TYPES` order), which
 have no observed D vs R result. The method is deterministic and fitted on nothing:
 
 - **Lean:** `L = 0.5 + cook_pvi / 100`, the district's D two-party share in a neutral year, from
@@ -233,7 +246,7 @@ whose lean is Republican.
 
 | `race_type` | Meaning | Rows (2006–2024) | Target |
 |---|---|---|---|
-| `dr_writein` | One major party has only write-in candidates, so the race is effectively uncontested on the ballot and its margin is near ±100. Includes TX-22 2006 and VA-9 2002 via `PARTY_OVERRIDES` | 7 (5) | yes |
+| `dr_writein` | One major party has only write-in candidates, so the race is effectively uncontested on the ballot and its margin is near ±100. Includes TX-22 2006 and VA-9 2002 via `PARTY_OVERRIDES` | 7 (5) | yes in `targets_raw.csv`; in `targets.csv` only TX-22 2006, the other four are uncontested (`TREATED_UNCONTESTED`) |
 | `dr_rcv` | Ranked-choice voting: ME from 2018, AK from 2022. The first round is used and treated like a jungle round; the source lacks it for ME-2 2018, 2022 and 2024 (see `is_rcv`) | 10 (10) | yes (set by the jungle / RCV step in `targets.csv`) |
 | `dr_jungle` | All-candidate November round, often with several candidates per party; the target combines each party's votes. LA 1998–2006 and 2012–2024, and the Texas specials of 1996 and 2006. The runoff isn't used even where the source has it | 66 (40) | yes (set by the jungle / RCV step in `targets.csv`) |
 | `dr` | Ordinary race: exactly one D and one R, possibly with third-party candidates | 9,361 (3,821) | yes |
@@ -249,7 +262,7 @@ whose lean is Republican.
 - **Party overrides:** `PARTY_OVERRIDES` recodes two Republican nominees whom the source lists as party-less write-ins: Sekula-Gibbs (TX-22 2006) and Katzen (VA-9 2002). Those rows are flagged `party_override`.
 - **Cross-endorsed candidates** (NY 1976–1990, nominated on both the D and R lines) are counted as neither party in `targets_raw.csv`. Their D/R votes, margins and `winner_party` are blank. `targets.csv` assigns them to their larger line (see above).
 - **`winner_party`** is blank where the source doesn't settle it: a cross-endorsed winner, or a majority-rule round whose leader has 50% or less, whose runoff isn't in the source, and whose top two are from different parties (`no_majority_runoff_not_in_source`). Only the 24 cross-endorsed rows are blank now.
-- **Official corrections (`LA_OFFICIAL`):** every 2006–2024 Louisiana race was checked against Louisiana's official results, saved unmodified in [`data/reference/la_sos`](../data/reference/la_sos/README.md). In six races MEDSL gives the top two candidates' December runoff totals in place of their November counts (in LA-5 2020, the runoff totals plus 100,000). The script replaces those counts with the official November results, flags the rows `official_results_correction`, and `source` names both sources. Every MEDSL candidate must match exactly one official candidate (`LA_NAME_ALIASES` covers one spelling difference), or the script stops. The official December runoffs of those six and of LA-3 2012 (whose November counts already match) are added as `runoff` contests in `targets_supp.csv`, and `winner_party` comes from them. Every other race matches the official November results; none of them had a runoff.
+- **Official corrections (`LA_OFFICIAL`):** every 2006–2024 Louisiana race was checked against Louisiana's official results, saved unmodified in [`data/raw/la_sos`](../data/raw/la_sos/README.md). In six races MEDSL gives the top two candidates' December runoff totals in place of their November counts (in LA-5 2020, the runoff totals plus 100,000). The script replaces those counts with the official November results, flags the rows `official_results_correction`, and `source` names both sources. Every MEDSL candidate must match exactly one official candidate (`LA_NAME_ALIASES` covers one spelling difference), or the script stops. The official December runoffs of those six and of LA-3 2012 (whose November counts already match) are added as `runoff` contests in `targets_supp.csv`, and `winner_party` comes from them. Every other race matches the official November results; none of them had a runoff.
 
   | Race | Runoff | Combined November margin (before → after) | `winner_party` |
   |---|---|---|---|
@@ -270,7 +283,9 @@ whose lean is Republican.
 
 The targets use one contest per district, the November round. For `targets.csv`'s years (2006–2024),
 `targets_supp.csv` keeps every contest of the districts whose source has more than one, and the November round of
-every jungle and RCV race, whose target in `targets.csv` the jungle / RCV step sets. It is **not joined into `targets.csv` or
+every jungle and RCV race, whose target in `targets.csv` the jungle / RCV step sets. It also keeps the actual November
+result of every race whose `targets.csv` target is imputed but had an opponent: every `*_vs_3p` race and every
+`TREATED_UNCONTESTED` race (where its `race_type` is the observed one, e.g. `dr`). It is **not joined into `targets.csv` or
 `targets_raw.csv`**. It is reference data for future imputation of `adj_margin_2p_norm` (for example, from a
 jungle race's combined vote or a runoff), and for post-processing and model evaluation. Its columns are `TARGET_SUPP_COLUMNS`, typed by
 `TARGETS_SUPP_SCHEMA` in `schema.py`. Each row's votes, margins, candidate counts, `race_type`, `winner_party` and
@@ -278,7 +293,7 @@ provenance are computed the same way as in the targets, for that contest alone. 
 
 | `contest` | Meaning | Districts |
 |---|---|---|
-| `first_round` | The November round (an RCV race's first round). It is the contest the targets use, so these rows repeat `targets_raw.csv`'s values | 40 jungle, 10 RCV, and TX 2006 22 |
+| `first_round` | The November round (an RCV race's first round). It is the contest the targets use, so these rows repeat `targets_raw.csv`'s values | 40 jungle, 10 RCV, TX 2006 22, and 208 imputed races with an opponent (205 `*_vs_3p` in `targets.csv`, incl. 5 treated, plus AZ-3 2016, AZ-8 and AZ-9 2022) |
 | `runoff` | The December runoff. Never `dr_jungle` | TX 2006 23; LA 2006 2, 2012 3, 2014 5 and 6, 2016 3 and 4, 2020 5 (official results) |
 | `special` | A same-day special for the rest of the unexpired term | TX 2006 22 |
 

@@ -82,3 +82,24 @@ def test_cross_endorsed_candidate_counts_for_their_larger_line_in_targets_only()
     assert before["race_type"] == "cross_endorsed" and pd.isna(before["winner_party"])
     assert (after["race_type"], after["winner_party"], after["dem_candidate_count"]) == ("dem_vs_3p", "D", 1)
     assert after["quality_flags"] == "cross_endorsed_assigned" and pd.isna(after["adj_margin_2p_norm"])
+
+
+def test_treated_uncontested_races_are_imputed_in_targets_only_and_kept_in_supp():
+    raw, targets, supp = build(
+        rows(2022, "AZ", 8, [("A", "DEMOCRAT", 50, True), ("B", "REPUBLICAN", 900)]),  # TREATED_UNCONTESTED key
+        rows(2022, "WI", 8, [("C", "DEMOCRAT", 30, True), ("D", "REPUBLICAN", 900), ("E", "GREEN", 200)]),
+        rows(2022, "NC", 6, [("F", "DEMOCRAT", 800), ("G", "REPUBLICAN", 50, True)]),  # dr_writein, not listed
+        rows(2022, "TX", 1, [("H", "REPUBLICAN", 900), ("I", "LIBERTARIAN", 100)]),  # gop_vs_3p
+        everything=True)
+    assert raw.loc[(2022, "AZ", 8), "race_type"] == "dr_writein" and raw.loc[(2022, "AZ", 8), "is_imputed"] is False
+    az, wi = targets.loc[(2022, "AZ", 8)], targets.loc[(2022, "WI", 8)]
+    assert (az["race_type"], wi["race_type"]) == ("gop_uncontested", "gop_vs_3p")
+    assert pd.isna(az["adj_margin_2p_norm"]) and pd.isna(az["is_imputed"]) and az["needs_imputation"]
+    assert az["is_nonstandard_race"] and wi["is_nonstandard_race"]
+    assert az["quality_flags"] == "writein_treated_uncontested" and az["dem_votes"] == 50  # votes kept
+    assert targets.loc[(2022, "NC", 6), "race_type"] == "dr_writein"
+    assert targets.loc[(2022, "NC", 6), "adj_margin_2p_norm"] == raw.loc[(2022, "NC", 6), "adj_margin_2p_norm"]
+    # the actual results of the imputed races with an opponent are in supp, as observed
+    assert supp[["state", "district", "race_type"]].values.tolist() == [["AZ", 8, "dr_writein"], ["TX", 1, "gop_vs_3p"],
+                                                                        ["WI", 8, "dr_writein"]]
+

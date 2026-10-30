@@ -56,6 +56,14 @@ HOUSE_OVERRIDES = {
                        "CAGE codes Mayra Flores (R) as an incumbent, but she lost TX-34 in 2022; Gonzalez (D) is"),
     (2006, "MI", 7): (0, 0, "", "incumbent Schwarz (R) lost the primary and ran as a write-in; the R nominee wasn't the incumbent"),
     (2016, "KS", 1): (0, 0, "", "incumbent Huelskamp (R) lost the primary and ran as a write-in; the R nominee wasn't the incumbent"),
+    # CAGE codes every incumbent in Louisiana's 2006 November (jungle) round as a non-incumbent; only LA-2, whose
+    # Jefferson rows are the December runoff, is coded. Each of these won the seat in 2004
+    (2006, "LA", 1): (1, -1, "JINDAL, BOBBY", "CAGE misses the incumbent in the 2006 LA jungle round"),
+    (2006, "LA", 3): (1, 1, "MELANCON, CHARLES J. (CHARLIE), JR.", "CAGE misses the incumbent in the 2006 LA jungle round"),
+    (2006, "LA", 4): (1, -1, "MCCRERY, JAMES O. (JIM)", "CAGE misses the incumbent in the 2006 LA jungle round"),
+    (2006, "LA", 5): (1, -1, "ALEXANDER, RODNEY M.", "CAGE misses the incumbent in the 2006 LA jungle round"),
+    (2006, "LA", 6): (1, -1, "BAKER, RICHARD HUGH", "CAGE misses the incumbent in the 2006 LA jungle round"),
+    (2006, "LA", 7): (1, -1, "BOUSTANY, CHARLES W., JR.", "CAGE misses the incumbent in the 2006 LA jungle round"),
     # incumbents of both parties in one redrawn district, resolved by hand
     (2012, "IA", 3): (1, -1, "LATHAM, THOMAS P. (TOM)", "Boswell (D) vs. Latham (R) after redistricting; coded as an R incumbent"),
     (2012, "OH", 16): (1, -1, "RENACCI, JAMES B. (JIM)", "Sutton (D) vs. Renacci (R) after redistricting; coded as an R incumbent"),

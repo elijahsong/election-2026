@@ -11,13 +11,14 @@ Row counts cover all of 1976–2024 (`targets_raw.csv`; `targets.csv` keeps 2006
 |---|---|---|---|
 | 1 | Which contest to use when a district has two | 1 (TX-23 2006) | November round, always |
 | 2 | What `total_votes` counts | 0 (only `margin_raw` and the `_pct` columns change) | A: exclude non-votes |
-| 3 | Targets for jungle, RCV and write-in-only races | 50 | jungle and RCV set as observed first-round party totals; `dr_multi` normal; planned: `dr_writein` → uncontested except TX-22 2006 |
+| 3 | Targets for jungle, RCV and write-in-only races | 50 | jungle and RCV set as observed first-round party totals; `dr_multi` normal; `dr_writein` → uncontested except TX-22 2006 |
 | 4 | TX-22 2006 (Republican write-in with no party in the source) | 1 | add `PARTY_OVERRIDES` |
 | 5 | Party-label mapping (DFL, Dem-NPL, …) | ~55 (ND and MN rows) | A: keep the mapping |
 | 6 | Blank `winner_party` | 0 | B in `targets.csv` only; LA-5/LA-6 2014 from official results |
 | 7 | DC excluded | 0 | A: exclude |
 | 8 | Independents who won or got most of the vote (found during this review) | 0 | A: keep; 2006–2024 only |
-| 9 | Which races are imputed as uncontested | 462 (+4 `dr_writein`) | `dem_vs_3p` through `no_major_party`, by state mean residual; national SHAVE fallback for 9 |
+| 9 | Which races are imputed as uncontested | 470 (incl. the 8 races of #10) | `dem_vs_3p` through `no_major_party`, by state mean residual; national SHAVE fallback for 9 |
+| 10 | D-R races treated as uncontested (write-in-only major party, major party third, voided election) | 8 | impute; actual results kept in `targets_supp.csv` |
 
 ---
 
@@ -131,12 +132,15 @@ The `major_party_writein_only` flag is gone, replaced by `dr_writein`. The ME-2 
   (`is_nonstandard_race` is `False`) and keeps its target.
 - **`dr_writein`:** unchanged; it keeps its target.
 
-**Planned (2026-10-29), not yet implemented: treat `dr_writein` as uncontested, except TX-22 2006.** The four
+**Decision (2026-10-30), implemented: treat `dr_writein` as uncontested, except TX-22 2006.** The four
 write-in-only races become `dem_uncontested` or `gop_uncontested`, by the party with the ballot-listed nominee:
 AZ-3 2016 (D, +99.6) is `dem_uncontested`, and AZ-8 2022 (−93.0), AZ-9 2022 (−95.5) and WI-8 2022 (−97.1) are
 `gop_uncontested`. Like other uncontested races, they'd have no observed target. TX-22 2006 (Lampson D vs
 Sekula-Gibbs, a Republican write-in nominee; +10.7) was a real two-party race, so it keeps its target and stays
-`dr_writein`.
+`dr_writein`. In `house_targets.py` these are in `TREATED_UNCONTESTED` (see section 10), applied to `targets.csv` only (`targets_raw.csv`
+keeps them as observed `dr_writein`). WI-8 2022 had two named third-party candidates, so, by the same rule as a
+cross-endorsed assignment, it is `gop_vs_3p` rather than `gop_uncontested`; both are imputed the same way. The rows
+are flagged `writein_treated_uncontested`, and their vote columns and candidate counts are kept as observed.
 - Every jungle and RCV race from 2006 on has its November round in `targets_supp.csv`, alongside the other contests
   of the two-contest districts.
 
@@ -219,7 +223,7 @@ candidate counts for their larger line in `targets.csv`. That sets `race_type`, 
 and the row is flagged `cross_endorsed_assigned`. `targets_raw.csv` keeps `cross_endorsed` and the blank
 `winner_party`. All 24 cases are before 2006, so `targets.csv` doesn't change yet.
 **LA-5 and LA-6 2014 (decided 2026-10-29): use Louisiana's official results.** The official November and December
-2014 results (downloaded with authorization to `data/reference/la_sos`) show that MEDSL's rows mix the rounds: the top
+2014 results (downloaded with authorization to `data/raw/la_sos`) show that MEDSL's rows mix the rounds: the top
 two candidates' counts are their December runoff totals, while every other candidate's count is from November.
 `LA_OFFICIAL` in `house_targets.py` replaces those counts with the official November ones and adds the official
 runoffs to `targets_supp.csv`. `winner_party` is now R for both, from the runoffs (Abraham, Graves), and the rows are
@@ -287,18 +291,18 @@ behavior is fine.
 | `cross_endorsed` | 0 |
 | `no_major_party` | 0 |
 
-With the planned `dr_writein` change (section 3), AZ-3 2016, AZ-8 2022, AZ-9 2022 and WI-8 2022 join them as
-uncontested, for 466 rows. TX-22 2006 keeps its target.
+With the `dr_writein` change (section 3, implemented 2026-10-30), AZ-3 2016, AZ-8 2022, AZ-9 2022 and WI-8 2022 join
+them as uncontested, for 466 rows. TX-22 2006 keeps its target.
 
 **Decision (2026-10-29): state mean residual, in `data-processing/house/house_impute_targets_uncontested.py`.** It imputes
-these 462 rows, not a separate `imputation.py`, and `race_type` is unchanged. In each (year, state), turnout is the mean D + R
+these 462 rows (470 with the eight races of section 10), not a separate `imputation.py`, and `race_type` is unchanged. In each (year, state), turnout is the mean D + R
 of the reference races, and the D two-party share is the district's lean plus the state's mean residual vs. lean.
 Reference races are `dr`, `dr_multi`, `dr_jungle` and `dr_rcv`, with jungle and RCV rows using their party totals.
 Imputed rows and `dr_writein` are never references. Details are in [`README.md`](README.md#uncontested-imputation-house_impute_targets_uncontestedpy).
 
 - `imputation_method` is `state_mean_residual`. It's listed in `MODELED_IMPUTATION_METHODS`, so the regression
   neither trains on these rows nor scores them.
-- 453 rows are imputed by `state_mean_residual`. The 9 rows whose state has no reference race that year (AR 2008 ×4,
+- 461 rows are imputed by `state_mean_residual` (453 before section 10's eight races). The 9 rows whose state has no reference race that year (AR 2008 ×4,
   VT 2008 and 2016, SD 2020 and 2022, and ND 2022) use the fallback below.
 - The ME-2 2018, 2022 and 2024 rows (`rcv_first_round_not_in_source`) aren't references, because their source counts
   aren't the first round. No imputed value changes, since Maine has no uncontested races.
@@ -315,6 +319,48 @@ Imputed rows and `dr_writein` are never references. Details are in [`README.md`]
 - Without a turnout reference these rows have a target but no vote counts (`dem/gop_votes_imputed` blank), and keep
   `imputation_no_reference`. A year missing from `shave.csv` would leave the row blank with `imputation_no_shave`.
 - All 9 margins favor the party that held the seat, from −41.3 (ND 2022) to +30.3 (VT 2016).
-- `targets_supp.csv` isn't used, since none of its contests is on an uncontested key.
+- `targets_supp.csv` isn't used. Since 2026-10-30 it holds the actual result of every imputed race with an opponent
+  (section 10), as reference data only.
 - Considered and not used: historical district turnout (lines change with redistricting), and a regression model
   (kept simple and auditable).
+
+---
+
+## 10. D-R races treated as uncontested (`TREATED_UNCONTESTED`)
+
+**Found during a 2026-10-30 review** of every observed 2006–2024 target, by category. Some races have a D and an R on
+the ballot, but their D vs R margin isn't a contested result. Normalizing to two-party doesn't fix this: it drops the
+third-party votes but doesn't give them back to the side they came from. In MT-2 2022 the anti-Republican vote was 42%
+(D 20.2 + Buchanan 21.9), but the target was −47.4, as if the Democrat alone were the opposition.
+
+**Decision (2026-10-30): treat these 8 races as uncontested in `targets.csv`.** Each becomes the winner's party +
+`_uncontested` (or `_vs_3p` with a named third-party candidate), its target is imputed by `state_mean_residual`, and
+it's flagged with the reason. They stop being reference races for their state's imputation, which moves other imputed
+CA 2008 and NC 2018 targets by 0.1 to 0.6 points. `targets_raw.csv` keeps them as observed.
+
+| Flag | Race | Observed result | Observed target → imputed |
+|---|---|---|---|
+| `writein_treated_uncontested` | AZ-3 2016, AZ-8 / AZ-9 / WI-8 2022 | see section 3 | +99.6 → +24.9; −93.0 → −15.6; −95.5 → −27.5; −97.1 → −18.0 |
+| `major_party_third_treated_uncontested` | TN-9 2006 | Cohen (D) 59.9, Jake Ford (I) 22.2, R 18.0 | +53.8 → +55.4 |
+| | CA-8 2008 | Pelosi (D) 71.9, Cindy Sheehan (I) 16.2, R 9.7 | +76.3 → +84.5 |
+| | MT-2 2022 | Rosendale (R) 56.6, Gary Buchanan (I) 21.9, D 20.2 | −47.4 → −23.4 |
+| `voided_election_treated_uncontested` | NC-9 2018 | Harris (R) 49.3, McCready (D) 48.9; never certified (absentee-ballot fraud), rerun in 2019 | −0.3 → −7.2 |
+
+**Considered and reverted (2026-10-30): MT-2 2022 with Buchanan counted as the D.** Counting Buchanan's votes with
+Ronning's (D 90,675 vs R 121,979) gave an observed `dr_multi` target of −14.7. That made it the base model's largest
+2022 miss (residual +25.1, prediction −39.8). It is far more Democratic than an ordinary race there: MT-2 2024, an
+open D vs R seat, was −32.0, and MT-1 2022's residual was only +8.4. Buchanan likely drew moderate Republicans too, so
+counting all his votes as D overstates the D side. MT-2 2022 is imputed like TN-9 and CA-8 instead.
+
+**Kept as observed** (reviewed, no change):
+- A strong independent (15% or more) who still finished behind both major parties: MN-5 2006, OH-2 2008, OH-17 2010
+  (Traficant), FL-14 2008, TN-3 2010. These were real D vs R races.
+- Low-share major-party nominees: no observed race has a losing major party below 2%. The six below 5% are NYC
+  Republicans, real ballot-listed nominees.
+- Jungle and RCV races: every party with a candidate got at least 10.8%.
+- `dr_multi`: all 12 are real D vs R races with a stray same-party write-in.
+
+**Actual results of imputed races:** `targets.csv` keeps every imputed row's observed vote columns (`dem_votes`,
+`gop_votes`, `3p_votes`). `targets_supp.csv` adds the November contest of every imputed race with an opponent (each
+`*_vs_3p` race and each `TREATED_UNCONTESTED` race, 208 keys), with its observed `race_type`, and
+`targets_candidates.csv` names its candidates. `dem_vs_dem` / `gop_vs_gop` races aren't included yet.

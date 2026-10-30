@@ -340,15 +340,16 @@ def highlight(compared: pd.DataFrame):
     return styler
 
 
-def compare_predictions(runs: list, results_dir: Path = RESULTS_DIR) -> pd.DataFrame:
+def compare_predictions(runs: list, results_dir: Path = RESULTS_DIR, values: str = "prediction") -> pd.DataFrame:
     """District by district: one row per evaluation district every run predicted (an inner join on year, state,
     district), with its actual target value (`actual`, e.g. the observed adj_margin_2p_norm) and is_imputed, then
-    each run's prediction for that district in a column named after the run (as in compare)."""
+    each run's prediction for that district in a column named after the run (as in compare).
+    values="residual" gives each run's residual (actual - prediction) instead; NaN where there is no actual."""
     labeled = _runs(runs, results_dir)
     out = None
     for name, run in zip(_names(labeled.values()), labeled.values()):
         rows = run.predictions[run.predictions["role"] == "eval"]
         if out is None:
             out = rows[[*KEY, "actual", "is_imputed"]]
-        out = out.merge(rows[[*KEY, "prediction"]].rename(columns={"prediction": name}), on=KEY)
+        out = out.merge(rows[[*KEY, values]].rename(columns={values: name}), on=KEY)
     return out
