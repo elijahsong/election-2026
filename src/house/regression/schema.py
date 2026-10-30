@@ -9,7 +9,8 @@ Severity, by column (see validate_schema):
   required                      any problem is a blocking error. Callers pass the selected predictors (and the
                                 config's target when fitting or scoring), checked only on the rows they pass in
   every other registered column null or invalid values are non-blocking warnings, and so is an absent column, except
-                                a target: targets live in their own table and are often absent from feature data
+                                a target: targets live in their own table and are often absent from feature data.
+                                A nullable column's nulls are expected and not reported
 """
 
 import re
@@ -34,6 +35,7 @@ class Column:
     pattern: str | None = None  # regex a "str" value must fully match
     min_value: float | None = None
     description: str = ""
+    nullable: bool = False  # nulls are expected (e.g. quality_flags, imputation_method): not reported unless required
 
 
 def _numeric(tranche: str, names: list[str], role: str = "predictor") -> list[Column]:
@@ -111,20 +113,22 @@ TARGETS_SCHEMA = {c.name: c for c in [
     COLUMNS["adj_margin_2p_norm"],
     Column("dem_votes_imputed", "numeric", "metadata", "targets", min_value=0,
            description="the D votes behind an imputed target; null where none is imputed, or where the imputation "
-                       "has no turnout (national_shave)"),
+                       "has no turnout (national_shave)", nullable=True),
     Column("gop_votes_imputed", "numeric", "metadata", "targets", min_value=0,
            description="the R votes behind an imputed target; null where none is imputed, or where the imputation "
-                       "has no turnout (national_shave)"),
+                       "has no turnout (national_shave)", nullable=True),
     Column("is_imputed", "bool", "metadata", "targets",
            description="False for an observed adj_margin_2p_norm, True for an imputed one, null where it is missing"),
     Column("imputation_method", "str", "metadata", "targets",
-           description="how an imputed target was made (house_impute_targets_uncontested.py); null otherwise"),
+           description="how an imputed target was made (house_impute_targets_uncontested.py); null otherwise",
+           nullable=True),
     Column("needs_imputation", "bool", "metadata", "targets",
            description="True where there is no observed target; stays True once one is imputed"),
     Column("is_nonstandard_race", "bool", "metadata", "targets",
            description="True for every race_type but dr and dr_multi"),
     Column("is_unofficial", "bool", "metadata", "targets"),
-    Column("quality_flags", "str", "metadata", "targets", description="semicolon-separated; null when none"),
+    Column("quality_flags", "str", "metadata", "targets", description="semicolon-separated; null when none",
+           nullable=True),
     Column("source", "str", "metadata", "targets"),
 ]}
 
@@ -258,7 +262,8 @@ def validate_schema(df: pd.DataFrame, required=(), schema: dict[str, Column] = C
             if severity == "error" or column.role != "target":
                 add(column.name, "missing_column", severity, np.ones(len(df), dtype=bool))
             continue
-        add(column.name, "null", severity, df[column.name].isna())
+        if severity == "error" or not column.nullable:
+            add(column.name, "null", severity, df[column.name].isna())
         add(column.name, "invalid_value", severity, _invalid(df[column.name], column))
     if set(key) <= set(df.columns):
         add(", ".join(key), "duplicate_key", "error", df.duplicated(key, keep=False))

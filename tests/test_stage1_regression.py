@@ -5,7 +5,12 @@ import pytest
 
 from house.regression import backtest, metrics
 from house.regression.data import join_target, split_years
-from house.regression.schema import MODELED_IMPUTATION_METHODS, SchemaError, validate_schema
+from house.regression.schema import (
+    MODELED_IMPUTATION_METHODS,
+    TARGETS_SCHEMA,
+    SchemaError,
+    validate_schema,
+)
 
 TARGET = "adj_margin_2p_norm"
 FEATURES = ["gen_margin_raw", "partisan_lean", "inc_signed"]
@@ -49,6 +54,11 @@ def test_validation_levels():
     with pytest.raises(SchemaError) as err:
         blocked.raise_if_errors()
     assert err.value.report is blocked
+
+    flags = df[["year", "state", "district"]].assign(quality_flags=None)  # nullable: null means no flags
+    assert "quality_flags" not in set(validate_schema(flags, schema=TARGETS_SCHEMA).issues["column"])
+    assert issues(validate_schema(flags, required=["quality_flags"], schema=TARGETS_SCHEMA).errors) == \
+        {("quality_flags", "null")}  # unless required
 
     bad_keys = pd.concat([df, df.iloc[[0]]], ignore_index=True)
     bad_keys.loc[2, "state"] = "nc"
