@@ -72,7 +72,8 @@ def test_aggregate_conserves_totals_and_rejects_unit_mismatch():
 @pytest.mark.skipif(not os.getenv("CENSUS_API"), reason="needs a Census API key")
 def test_live_rebuild_matches_published_116th_districts():
     diff = nc_2020.sanity_check(os.environ["CENSUS_API"]).abs()
-    shares = ["white", "black", "hispanic", "college", "moved_within_past_yr", "foreign_born", "unemployment", "poverty"]
+    shares = ["white", "black", "hispanic", "college", "moved_within_past_yr", "foreign_born", "unemployment", "poverty",
+              "housing_burden"]
     assert diff[shares].to_numpy().max() < 0.25
     assert diff["median_income"].max() < 1_000 and diff["median_age"].max() < 0.5
     assert diff["avg_household_size"].max() < 0.02

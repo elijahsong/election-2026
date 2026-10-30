@@ -43,6 +43,7 @@ def test_build_2018(fake_api, tmp_path):
     assert row["moved_within_past_yr"] == 13.04
     assert (row["foreign_born"], row["unemployment"], row["poverty"]) == (10.0, 5.0, 12.0)
     assert (row["median_income"], row["median_age"], row["avg_household_size"]) == (65_432, 38.4, 2.55)
+    assert row["housing_burden"] == 44.44
 
     on_disk = pd.read_csv(tmp_path / "acs.csv")
     assert list(on_disk.columns) == acs.COLUMNS and len(on_disk) == 435

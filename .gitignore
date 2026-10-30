@@ -7,6 +7,8 @@ nowcast/data/*
 */.DS_store
 .DS_Store
 
+CLAUDE.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

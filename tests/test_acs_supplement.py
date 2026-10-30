@@ -21,6 +21,8 @@ def acs_csv(fake_api, tmp_path):
     # nation: 25% college, $60,000 income, 6% unemployment (B23025 only, so 2010's C23001 national rate stays 5%)
     us = state["us:1"][0]
     us.update({v: "30000" for v in COLLEGE_CELLS}, B19013_001E="60000", B23025_005E="21000")
+    # nation: renters' burdened bins doubled, so (8,000 + 8,000 + 12,000) / (13,000 + 18,000 + 27,000) = 48.28%
+    us.update({v: "2000" for v in acs.BURDEN_CELLS["renters"][acs.BURDENED]})
     # California: 30% college, $70,000 income; every other state matches its districts exactly
     ca = next(r for r in state["state:*"] if r["state"] == "06")
     ca.update({v: "36000" for v in COLLEGE_CELLS}, B19013_001E="70000")
@@ -38,12 +40,13 @@ def test_relative_columns(acs_csv, tmp_path):
     assert (y18["log_rel_income"] == round(math.log(65_432 / 60_000), 4)).all()
     assert (y18["rel_unemployment"] == -1.0).all()
     assert (out.loc[out["year"] == 2010, "rel_unemployment"] == 0.0).all()
+    assert (out["rel_housing_burden"] == round(44.44 - 48.28, 2)).all()  # district 44.44% vs nation 48.28%
 
     ca, rest = out[out["state"] == "CA"], out[out["state"] != "CA"]
     assert (ca["rel_state_college"] == 3.33).all()
     assert (ca["log_rel_state_income"] == round(math.log(65_432 / 70_000), 4)).all()
     # districts equal to their state (including every at-large one) compare as exactly zero, never -0.0
-    for col in ["rel_state_college", "log_rel_state_income", "rel_state_unemployment"]:
+    for col in ["rel_state_college", "log_rel_state_income", "rel_state_unemployment", "rel_state_housing_burden"]:
         assert (rest[col] == 0).all() and not rest[col].map(lambda x: math.copysign(1, x) < 0).any()
 
 

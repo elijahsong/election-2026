@@ -19,11 +19,13 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import urllib.request
 from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "house"))
 import acs
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -345,7 +347,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--cage", type=Path, help="local CAGE candidates file (default: download and cache it)")
     parser.add_argument("--counts", default=ROOT / "data/reference/district_counts.json", type=Path)
-    parser.add_argument("--house-output", default=ROOT / "data/interim/house_incumbency.csv", type=Path)
+    parser.add_argument("--house-output", default=ROOT / "data/interim/house/house_incumbency.csv", type=Path)
     parser.add_argument("--senate-output", default=ROOT / "data/interim/senate_incumbency.csv", type=Path)
     args = parser.parse_args()
     with open(args.counts) as f:

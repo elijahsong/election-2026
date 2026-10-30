@@ -20,6 +20,9 @@ VALUES = {
     "B23025_003E": 350_000, "B23025_005E": 17_500,
     **{f"{t}17001_{n:03d}E": x for t in "BC" for n, x in ((1, 680_000), (2, 81_600))},
     "B25010_001E": 2.55,
+    # housing burden: each of the 9 bins holds 1,000 renters, 2,000 mortgaged owners, and 3,000 owners without a
+    # mortgage, and 4 of the 9 bins are 30%+, so the burden is 4/9 = 44.44%
+    **{v: n for cells, n in zip(acs.BURDEN_CELLS.values(), (1_000, 2_000, 3_000)) for v in cells},
 }
 # C23001 cells run male then female, each as 5 under-65 age groups followed by 2 aged-65+ groups
 for i, (lf, unemployed) in enumerate(zip(acs.UNEMPLOYMENT_C23001.den, acs.UNEMPLOYMENT_C23001.num)):

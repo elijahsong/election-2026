@@ -64,8 +64,10 @@ CENSUS_SENTINELS = {-111111111, -222222222, -333333333, -555555555, -666666666, 
 COLUMNS = [
     "year", "state", "district", "acs_vintage", "white", "black", "hispanic", "college", "median_income",
     "median_age", "moved_within_past_yr", "foreign_born", "unemployment", "poverty", "avg_household_size",
+    "housing_burden",
 ]
-PCT_FIELDS = ["white", "black", "hispanic", "college", "moved_within_past_yr", "foreign_born", "unemployment", "poverty"]
+PCT_FIELDS = ["white", "black", "hispanic", "college", "moved_within_past_yr", "foreign_born", "unemployment", "poverty",
+              "housing_burden"]
 
 
 class Ratio(NamedTuple):
@@ -89,6 +91,25 @@ COLLEGE_CELLS = {  # bachelor's and higher, male then female
     "C15002": (8, 9, 16, 17),  # bachelor's, graduate or professional
 }
 FOREIGN_BORN_CELL = {"B05002": 13, "C05002": 8}
+
+# Housing cost burden: households spending 30%+ of income on housing, over households whose burden is computable.
+# Renters (B25070, gross rent) and owners (B25091, selected monthly owner costs, with and then without a mortgage) use
+# the same bins: <10, 10-14.9, 15-19.9, 20-24.9, 25-29.9, 30-34.9, 35-39.9, 40-49.9, 50+, then "Not computed". The
+# denominator sums the computable bins, which is each total minus its "Not computed" cells. Both tables are published
+# for every district in every vintage, so 1-year vintages read them directly (there is no collapsed C version).
+BURDEN_BINS = ["Less than 10.0 percent", "10.0 to 14.9 percent", "15.0 to 19.9 percent", "20.0 to 24.9 percent",
+               "25.0 to 29.9 percent", "30.0 to 34.9 percent", "35.0 to 39.9 percent", "40.0 to 49.9 percent",
+               "50.0 percent or more"]
+BURDENED = slice(5, None)  # the bins at or above 30%
+BURDEN_CELLS = {  # table cells, in BURDEN_BINS order, for renters, owners with a mortgage, owners without one
+    "renters": _cells("B25070", *range(2, 11)),
+    "owners with a mortgage": _cells("B25091", *range(3, 12)),
+    "owners without a mortgage": _cells("B25091", *range(14, 23)),
+}
+HOUSING_BURDEN = Ratio(
+    num=tuple(v for cells in BURDEN_CELLS.values() for v in cells[BURDENED]),
+    den=tuple(v for cells in BURDEN_CELLS.values() for v in cells),
+)
 
 # C23001 (sex by age by employment status) is the labor-force table before B23025 starts in 2012. Ages 16-64 come in
 # blocks of 7 cells (in LF, armed forces, civilian, employed, unemployed, ...) and 65+ in blocks of 5 with no
@@ -127,6 +148,7 @@ def vintage_fields(acs_year: int, product: str) -> dict[str, Ratio | str]:
         "unemployment": UNEMPLOYMENT_C23001 if acs_year < 2012 else UNEMPLOYMENT_B23025,
         "poverty": Ratio(_cells(poverty, 2), _cells(poverty, 1)),
         "avg_household_size": "B25010_001E",
+        "housing_burden": HOUSING_BURDEN,
     }
 
 
@@ -162,6 +184,10 @@ EXPECTED_LABELS = {
     **{f"{t}17001_{n:03d}E": label for t in "BC" for n, label in (
         (1, "Total"), (2, "Total!!Income in the past 12 months below poverty level"))},
     "B25010_001E": "Total",
+    **dict(zip(BURDEN_CELLS["renters"], (f"Total!!{b}" for b in BURDEN_BINS))),
+    **dict(zip(BURDEN_CELLS["owners with a mortgage"], (f"Total!!Housing units with a mortgage!!{b}" for b in BURDEN_BINS))),
+    **dict(zip(BURDEN_CELLS["owners without a mortgage"],
+               (f"Total!!Housing units without a mortgage!!{b}" for b in BURDEN_BINS))),
 }
 for off, sex in ((0, "Male"), (C23001_FEMALE_OFFSET, "Female")):
     for i, age in enumerate(C23001_AGES_UNDER_65):
@@ -182,6 +208,8 @@ TABLE_CONCEPTS = {
     "B23025": "Employment status for the population 16 years and over",
     **{f"{t}17001": "Poverty status in the past 12 months by sex by age" for t in "BC"},
     "B25010": "Average household size of occupied housing units by tenure",
+    "B25070": "Gross rent as a percentage of household income in the past 12 months",
+    "B25091": "Mortgage status by selected monthly owner costs as a percentage of household income in the past 12 months",
 }
 
 ROUNDING = {**{f: 2 for f in PCT_FIELDS}, "avg_household_size": 2, "median_age": 1, "median_income": 0}
@@ -465,7 +493,7 @@ def main() -> None:
     parser.add_argument("years", nargs="*", type=int, help="House election years to build")
     parser.add_argument("--all", action="store_true", help="build every year with an ACS vintage")
     parser.add_argument("--counts", default="data/reference/district_counts.json", help="JSON {year: {state: n}}")
-    parser.add_argument("--output", default="data/interim/acs.csv")
+    parser.add_argument("--output", default="data/interim/house/acs.csv")
     args = parser.parse_args()
 
     years = [y for y, v in YEAR_TO_ACS_VINTAGE.items() if v is not None] if args.all else args.years

@@ -36,7 +36,7 @@ import acs
 
 YEAR = 2020  # House election year; resolves to the 2016-2020 ACS 5-year in acs.YEAR_TO_ACS_VINTAGE
 STATE = "37"  # North Carolina FIPS code
-RAW_DIR = Path(__file__).resolve().parents[1] / "data/raw/nc_2020"  # download cache (gitignored)
+RAW_DIR = Path(__file__).resolve().parents[2] / "data/raw/nc_2020"  # download cache (gitignored)
 
 # name -> (url, zip member, sha256). Pinned so a changed upstream file fails loudly instead of silently moving lines.
 #   plan_2020: NC General Assembly block file for the enacted 2020 map, on 2010 blocks (columns Block, District)
@@ -62,11 +62,12 @@ DISTRICTS = set(range(1, 14))
 BLOCK_GROUP_GEO = {"for": "block group:*", "in": f"state:{STATE} county:* tract:*"}
 TRACT_GEO = {"for": "tract:*", "in": f"state:{STATE} county:*"}
 
-# Field formulas summed from block groups. Race, college, and unemployment reuse the district-level 2020 formulas
-# (B03002, B15002, B23025). Poverty comes from B17021, which has B17001's universe and "below poverty" count but is
+# Field formulas summed from block groups. Race, college, unemployment, and housing burden reuse the district-level
+# 2020 formulas (B03002, B15002, B23025, B25070 + B25091). Poverty comes from B17021, which has B17001's universe and "below poverty" count but is
 # published by block group.
 BLOCK_GROUP_SPECS = {
-    **{field: acs.ACS_FIELDS[YEAR][field] for field in ("white", "black", "hispanic", "college", "unemployment")},
+    **{field: acs.ACS_FIELDS[YEAR][field]
+       for field in ("white", "black", "hispanic", "college", "unemployment", "housing_burden")},
     "poverty": acs.Ratio(("B17021_002E",), ("B17021_001E",)),
     # people in households / households, the definition behind B25010 (a published average can't be summed)
     "avg_household_size": acs.Ratio(("B25008_001E",), ("B25003_001E",), scale=1),

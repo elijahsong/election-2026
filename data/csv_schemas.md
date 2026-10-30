@@ -25,7 +25,7 @@ The adjusted House table uses SHAVE-style estimates for uncontested, missing-maj
 | `cook_pvi.csv` | `election, state, district` | `election, state, district, pvi, pvi_vintage, map_vintage` |
 | `demographics.csv` | `acs_vintage, congress, state, district` | `acs_vintage, congress, state, district, college_norm, whitenh_norm, blacknh_norm, asiannh_norm, hispanic_norm, othernh_norm` |
 
-`inc` is `1` when an incumbent is running and `0` for an open seat. `inc_signed` is `+1` for a running Democratic incumbent, `-1` for a running Republican incumbent, and `0` for an open seat. It is blank when the incumbent isn't a single major party (built by `src/incumbency.py`).
+`inc` is `1` when an incumbent is running and `0` for an open seat. `inc_signed` is `+1` for a running Democratic incumbent, `-1` for a running Republican incumbent, and `0` for an open seat. It is blank when the incumbent isn't a single major party (built by `data-processing/incumbency.py`).
 
 The generic-ballot features table is **derived from the existing daily `generic_ballot.csv`**, not collected separately. Momentum is defined as a change over time, distinct from the 30-day average or EWMA level.
 

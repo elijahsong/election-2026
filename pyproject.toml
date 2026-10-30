@@ -22,5 +22,5 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "data-processing", "data-processing/house", "."]
 testpaths = ["tests"]

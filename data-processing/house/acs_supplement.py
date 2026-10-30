@@ -9,15 +9,16 @@ from tqdm import tqdm
 
 import acs
 
-REFERENCE_FIELDS = ["college", "median_income", "unemployment"]
+REFERENCE_FIELDS = ["college", "median_income", "unemployment", "housing_burden"]
 SUPPLEMENT_COLUMNS = [
     "rel_college", "log_rel_income", "rel_state_college",
     "log_rel_state_income", "rel_unemployment", "rel_state_unemployment",
+    "rel_housing_burden", "rel_state_housing_burden",
 ]
 NATIONAL_GEO = {"for": "us:1"}
 STATE_GEO = {"for": "state:*"}
 # Election years with no ACS vintage of their own -> the election year whose vintage their rows are on. 2026's rows
-# (notebooks/03c) are 2024 1-year values: copied for unchanged districts, or rebuilt and adjusted to the 2024 1-year
+# (03c-demographics-2026.ipynb) are 2024 1-year values: copied for unchanged districts, or rebuilt and adjusted to the 2024 1-year
 # (acs_vintage "2024_1yr_rebuilt") for redrawn ones, so they are compared with 2024 1-year national and state values.
 REFERENCE_YEAR = {2026: 2024}
 REBUILT_SUFFIX = "_rebuilt"
@@ -97,13 +98,15 @@ def add_relative_columns(df: pd.DataFrame, national: pd.Series, states: pd.DataF
     out["log_rel_state_income"] = _log_ratio(df["median_income"], state["median_income"])
     out["rel_unemployment"] = df["unemployment"] - national["unemployment"]
     out["rel_state_unemployment"] = df["unemployment"] - state["unemployment"]
+    out["rel_housing_burden"] = df["housing_burden"] - national["housing_burden"]
+    out["rel_state_housing_burden"] = df["housing_burden"] - state["housing_burden"]
     # percentage-point gaps keep the inputs' 2 decimals; log ratios keep 4 (0.01% of income); + 0.0 turns -0.0 into 0.0
     out[SUPPLEMENT_COLUMNS] = out[SUPPLEMENT_COLUMNS].round({c: 4 if c.startswith("log_") else 2 for c in SUPPLEMENT_COLUMNS}) + 0.0
     return out
 
 
-def build_supplement(input_path: str | Path = "data/interim/acs.csv",
-                     output_path: str | Path = "data/interim/acs_supplement.csv") -> pd.DataFrame:
+def build_supplement(input_path: str | Path = "data/interim/house/acs.csv",
+                     output_path: str | Path = "data/interim/house/acs_supplement.csv") -> pd.DataFrame:
     """Rebuild the supplement for every year in acs.csv; acs.csv itself is left untouched."""
     if Path(output_path).resolve() == Path(input_path).resolve():
         raise ValueError("Write the supplement to a separate file; acs.py only accepts its own schema in acs.csv")
@@ -127,8 +130,8 @@ def build_supplement(input_path: str | Path = "data/interim/acs.csv",
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", default="data/interim/acs.csv")
-    parser.add_argument("--output", default="data/interim/acs_supplement.csv")
+    parser.add_argument("--input", default="data/interim/house/acs.csv")
+    parser.add_argument("--output", default="data/interim/house/acs_supplement.csv")
     args = parser.parse_args()
     out = build_supplement(args.input, args.output)
     tqdm.write(f"{len(out)} rows across {out['year'].nunique()} years -> {args.output}")
