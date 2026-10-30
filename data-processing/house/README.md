@@ -109,10 +109,22 @@ python data-processing/house/house_features.py   # -> data/processed/house/{basi
 | `basic_f.csv` | `year, state, district` | `gen_margin_raw` (`generic_ballot.csv` `margin_raw`, election = year), `partisan_lean` (`house_partisan_lean.csv`), `inc_signed` (`house_incumbency.csv`) |
 | `nat_political_f.csv` | `year` | Every `data/reference/generic_ballot.csv` field prefixed `gb_`; `election` → `year`, `dem/gop/und_estimate` → `gb_dem_pct / gb_gop_pct / gb_und_pct` |
 | `acs_f.csv` | `year, state, district` | `acs_vintage` through `rel_state_housing_burden` from `acs_supplement.csv` |
-| `modeling.csv` | `year, state, district` | `basic_f` and `acs_f` joined on the key, then `nat_political_f` joined on `year` |
+| `fec_f.csv` | `year, state, district` | `fundraising_advantage`, `spending_advantage`, `small_dollar_share_diff`, `dem_fec_missing`, `gop_fec_missing` from `data/processed/house_fec.csv` (see below) |
+| `modeling.csv` | `year, state, district` | `basic_f`, `acs_f` and `fec_f` joined on the key, then `nat_political_f` joined on `year` |
 
 - **Joins:** the district tables must have unique keys and exactly the same keys, and no column may appear in two of
   them; otherwise the script raises.
+- **`fec_f.csv`** (from `data-processing/fec_finance.py`'s `house_fec.csv`; see `../README.md`):
+  - **Capped:** the two log advantages are capped at ±`FEC_LOG_CAP` (5, a 148:1 ratio). Uncapped, a funded nominee
+    against one with no money gives about ±14, so the values are bimodal and that tail would dominate a linear fit.
+  - **Known gaps:** `FEC_KNOWN_GAPS` blanks every FEC feature in six races where a funded winner has no FEC data:
+    MD-4 and TX-3 in 2022 and 2024, IN-3 and VA-5 in 2024. `house_fec.csv` zero-fills those slots. Other
+    `no_fec_record` slots keep 0, mostly unfunded minor nominees.
+  - **Other blanks:** `small_dollar_share_diff` is blank in 2006 and wherever a share is undefined, and the 2026 races
+    with an unresolved nominee are blank too. `run_ols` leaves blank rows out (`missing:<var>`).
+  - **Timing (accepted, not fixed):** 2006–2024 values are FEC's full-cycle summaries through December 31, which
+    include post-election money. 2026 values run through mid-October. A pre-general cutoff for every year would need
+    report-level FEC data.
 - **2026** has no generic-ballot row yet, so its `gen_margin_raw` and `gb_*` fields are blank. Nothing is filled in.
 - `src/house/regression` loads `modeling.csv` as the predictors, so a feature set in its `config.py` can mix columns
   from every tranche. It loads the targets separately from `targets.csv`, and `modeling.csv` must not contain any.

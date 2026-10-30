@@ -11,7 +11,7 @@ predictors (modeling.csv) and targets (targets.csv) stay separate until backtest
 from .schema import COLUMNS, TRANCHES
 
 # Any predictor column of data/processed/house/modeling.csv can be listed. schema.TRANCHES lists each tranche's
-# predictors: basic_f, acs_f, and nat_political_f (e.g. TRANCHES["basic_f"] + ["college"]).
+# predictors: basic_f, acs_f, fec_f, and nat_political_f (e.g. TRANCHES["basic_f"] + ["college"]).
 FEATURE_SETS = {
     "classic": TRANCHES["basic_f"],  # gen_margin_raw, partisan_lean, inc_signed
     "enhanced": TRANCHES["basic_f"] + ["college", "hispanic"],
@@ -25,7 +25,7 @@ HOLDOUT_YEARS = [2024]
 # (default color when missing), and the year lists by YEAR_COLORS
 MODEL_COLORS = {"ols": "36"}  # cyan
 YEAR_COLORS = {"train_years": "32", "eval_years": "33"}  # green, yellow
-TRANCHE_COLORS = {"basic_f": "35", "acs_f": "34", "nat_political_f": "31"}  # magenta, blue, red
+TRANCHE_COLORS = {"basic_f": "35", "acs_f": "34", "fec_f": "32", "nat_political_f": "31"}  # magenta, blue, green, red
 
 CLASSIC_OLS = {
     "model_type": "ols",  # a models.MODELS key

@@ -168,6 +168,9 @@ Features:
   a cross-check: receipts agree for all but 15 of ~7,600 matched records.
 - **Coverage:** each summary covers the two-year cycle, with each candidate's own coverage dates. A Senate incumbent's
   earlier money shows only through cash on hand.
+- **Timing mismatch (accepted):** 2006–2024 totals mostly run through December 31, after the election, while 2026
+  runs through mid-October, before it. A model trained on the historical totals learns from end-of-cycle money.
+  Matching a pre-general cutoff in every year would need report-level data that the summary files don't have.
 
 ## Nominees
 

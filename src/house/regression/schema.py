@@ -63,6 +63,16 @@ COLUMNS = {c.name: c for c in [
         "log_rel_income", "rel_state_college", "log_rel_state_income", "rel_unemployment", "rel_state_unemployment",
         "rel_housing_burden", "rel_state_housing_burden",
     ]),
+    # fec_f.csv (FEC cycle totals; historical years run through Dec 31, after the election, 2026 through mid-October)
+    Column("fundraising_advantage", "numeric", "predictor", "fec_f",
+           description="log1p(D receipts) - log1p(R receipts), capped at +-5; 0 money where a party has no nominee"),
+    Column("spending_advantage", "numeric", "predictor", "fec_f",
+           description="log1p(D disbursements) - log1p(R disbursements), capped at +-5; null for a negative input"),
+    Column("small_dollar_share_diff", "numeric", "predictor", "fec_f",
+           description="D - R unitemized share of individual contributions; null in 2006, for a zero denominator, "
+                       "or a source share outside [0, 1]"),
+    Column("dem_fec_missing", "bool", "metadata", "fec_f", description="no FEC record (or no D nominee): amounts are 0"),
+    Column("gop_fec_missing", "bool", "metadata", "fec_f", description="no FEC record (or no R nominee): amounts are 0"),
     # nat_political_f.csv
     Column("gb_cutoff_date", "str", "metadata", "nat_political_f", pattern=DATE),
     Column("gb_date", "str", "metadata", "nat_political_f", pattern=DATE),
@@ -75,7 +85,7 @@ COLUMNS = {c.name: c for c in [
 
 # tranche -> its registered predictors, for building feature sets in config.py
 TRANCHES = {t: [c.name for c in COLUMNS.values() if c.tranche == t and c.role == "predictor"]
-            for t in ["basic_f", "acs_f", "nat_political_f"]}
+            for t in ["basic_f", "acs_f", "fec_f", "nat_political_f"]}
 
 # data/processed/house/targets.csv (and targets_raw.csv, all years), in file order: TARGET_COLUMNS, then provenance.
 # Check it with validate_schema(df, schema=TARGETS_SCHEMA).
