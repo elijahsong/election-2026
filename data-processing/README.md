@@ -246,9 +246,7 @@ Candidate summary records are tried before webl-only ones. Nothing is matched on
     candidate is in both (checked on Donalds 2022).
   - Each response with data is cached unmodified in `data/raw/fec_candidate_summaries/api/`, and `SOURCE.json` there
     records its URL (key redacted), time and sha256. Responses with no data aren't kept.
-  - Filled (`fec_api`): Trone 2018; Issa, Jacobs and Donalds 2020.
-  - Still `no_fec_record` and zero-filled:
-    - The API has no totals for Ivey 2022 and 2024, Self 2022 and 2024, or Stutzman 2024.
-    - Gillen and McGuire 2024 hit `DEMO_KEY`'s rate limit. Rerun `fec_api_totals.py` (with `FEC_API_KEY` set) and
-      then `fec_finance.py` to fill them.
+  - Filled (`fec_api`): Trone 2018; Issa, Jacobs and Donalds 2020; Gillen 2024.
+  - Still `no_fec_record` and zero-filled, because the API has no cycle totals for them either: Ivey 2022 and 2024,
+    Self 2022 and 2024, Stutzman 2024, McGuire 2024.
 - **2006 Republicans:** about 11% of 2006 R nominees (44, mostly in safe D seats) have no `webl06` record.
