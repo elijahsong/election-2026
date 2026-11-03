@@ -11,7 +11,7 @@
 - **Model B (fundamentals):** `partisan_lean + fundraising_advantage + pres_party_signed:is_midterm + pres_party_signed:cpi_region_log_yoy`.
 - **Fitting:** both models use equal-year WLS. Each valid training race gets weight ∝ 1 / (valid training races in its year).
 
-The module docstring records the methodological choices: the sign conventions, which rows are used, the training windows, and why 2024 is used. The specification comes from `notebooks/house/01_reg_ensemble_compare.ipynb` and `01_reg_final_2024_holdout.ipynb`.
+The module docstring records the methodological choices: the sign conventions, which rows are used, the training windows, and why 2024 is used. The specification comes from `notebooks/house/stage1/01_reg_ensemble_compare.ipynb` and `01_reg_final_2024_holdout.ipynb`. The single-variable ablations (fixed incumbency, WLS weightings, no generic ballot, a lean-free Model B) are in `01_reg_ablations.ipynb`.
 
 On 2026-11-02, Model A dropped `gb_momentum_30d_raw` for parsimony. Momentum is national and nearly collinear with `gen_margin_raw` (r = 0.92 across elections). Its coefficient swung by 2–3 points when a single training election was left out, and it bought only about 0.1 MAE, mostly in 2018. The evidence is in `01_reg_model_a_no_momentum.ipynb` and `01_reg_generic_ballot_smoothing.ipynb`. Those notebooks, and the two above, were run with momentum still in Model A, so their numbers are for the earlier spec.
 
@@ -34,7 +34,6 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path("../../src").resolve()))
-sys.path.insert(0, str(Path("../..").resolve()))  # repository root, for experiments.house
 from house import stage1
 
 CONFIG = stage1.HOUSE_ENSEMBLE_AB_85_15  # or stage1.HOUSE_MODEL_A
@@ -88,7 +87,7 @@ forecast.predictions
 
 The national variance is a pseudo-sample-size-weighted regularized moment estimator, (2 · 3² + Σ yearly mean residual²) / (K + 2): a fixed 3-point prior SD counted as 2 pseudo-elections, never tuned on backtests. The state and district SDs come from a random-effects ANOVA. The module docstring documents both.
 
-**Optional error factors** (`factors.py`). These give four hierarchies, compared in `notebooks/house/stage2/03_h2_regional`, `04_h1_demographic`, `05_h3_full` and `06_hierarchy_comparison.ipynb`. H0 above is the reference, and its results are unchanged.
+**Optional error factors** (`factors.py`). These give four hierarchies, compared in `notebooks/house/stage2/03_hierarchy_comparison.ipynb`, which runs all four. H0 above is the reference, and its results are unchanged.
 
 | hierarchy | error | `backtest(..., regions=, loadings=)` |
 |---|---|---|

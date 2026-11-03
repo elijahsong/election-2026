@@ -1,16 +1,16 @@
 """run_ols / run_wls: fit a formula by OLS or WLS on the training years, predict the evaluation and prediction years,
 and score.
 
-Notebook (from notebooks/house, put the repository root on sys.path first):
+Notebook (put src/ on sys.path first, as the notebooks do):
 
-    from experiments.house.run import run_ols
+    from house.experiments.run import run_ols
     result = run_ols("adj_margin_2p_norm ~ gen_margin_raw + partisan_lean + inc_signed",
                      train_years=list(range(2006, 2022, 2)), eval_years=[2022], name="classic_ols")  # save=False
     result.model.summary(); result.metrics; result.coverage; result.scored; result.predictions
 
 CLI (from the repository root; saves by default, --no-save to skip):
 
-    python -m experiments.house.run --formula "adj_margin_2p_norm ~ gen_margin_raw + partisan_lean + inc_signed" \\
+    PYTHONPATH=src python -m house.experiments.run --formula "adj_margin_2p_norm ~ gen_margin_raw + partisan_lean + inc_signed" \\
         --train-years 2006-2020 --eval-years 2022 --name classic_ols
 
 The formula is the model: any statsmodels (patsy) formula, with interactions (a:b, a*b), categoricals (C(state)), and
@@ -244,7 +244,7 @@ def _years(text: str) -> list[int]:
 
 def parse_args(argv=None) -> dict:
     """run_ols's keyword arguments from the command line."""
-    parser = argparse.ArgumentParser(prog="python -m experiments.house.run", description=__doc__.split("\n")[0])
+    parser = argparse.ArgumentParser(prog="python -m house.experiments.run", description=__doc__.split("\n")[0])
     parser.add_argument("--formula", required=True, help='e.g. "adj_margin_2p_norm ~ gen_margin_raw + inc_signed"')
     parser.add_argument("--train-years", required=True, type=_years, help="e.g. 2006-2020 or 2008,2012,2016")
     parser.add_argument("--eval-years", type=_years, default=[], help="scored against actual targets")

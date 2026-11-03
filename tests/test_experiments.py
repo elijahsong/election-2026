@@ -3,9 +3,9 @@ import pandas as pd
 import pytest
 from test_stage1_regression import TARGET, tables
 
-from experiments.house import evaluation, tracking
-from experiments.house import run as run_mod
-from experiments.house.run import run_ols, run_ols_fixed, run_wls
+from house.experiments import evaluation, tracking
+from house.experiments import run as run_mod
+from house.experiments.run import run_ols, run_ols_fixed, run_wls
 from house.regression.config import COMPETITIVE_SUBSETS, EVAL_RACE_TYPES
 from house.regression.schema import MODELED_IMPUTATION_METHODS
 
@@ -134,7 +134,7 @@ def test_fixed_coefficients_are_imposed_and_the_rest_re_estimated():
 
 
 def test_blends_score_like_a_model_and_weights_never_peek():
-    from experiments.house import ensemble
+    from house.experiments import ensemble
     predictors, targets = synthetic_tables()
     data = {"predictors": predictors, "targets": targets, "require_complete": ["college"]}
     a = run_ols(FORMULA, **YEARS, **data)  # exact on the synthetic line

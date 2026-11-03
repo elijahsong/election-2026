@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from experiments.house import evaluation
+from house.experiments import evaluation
 
 TARGET = "adj_margin_2p_norm"
 COMPETITIVE = {"ex_ante": ("partisan_lean", 10), "ex_post": ("margin_2p_norm", 10), "none": ("partisan_lean", 0)}

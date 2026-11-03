@@ -12,16 +12,16 @@ Model B, fundamentals (every coefficient estimated):
     adj_margin_2p_norm ~ partisan_lean + fundraising_advantage + pres_party_signed:is_midterm
                          + pres_party_signed:cpi_region_log_yoy
 
-The specification was chosen on the 2018-2022 backtest (notebooks/house/01_reg_ensemble_compare.ipynb) and checked
-once on the 2024 holdout (01_reg_final_2024_holdout.ipynb); nothing here selects features or weights. Model A then
-dropped gb_momentum_30d_raw (2026-11-02) for parsimony: it is national, nearly collinear with gen_margin_raw (r = 0.92
-across elections), and its coefficient swung by 2-3 points when one training election was dropped, for a small
-accuracy edge (about 0.1 MAE, mostly 2018). See 01_reg_model_a_no_momentum.ipynb and
+The specification was chosen on the 2018-2022 backtest (notebooks/house/stage1/01_reg_ensemble_compare.ipynb) and
+checked once on the 2024 holdout (01_reg_final_2024_holdout.ipynb); nothing here selects features or weights. Model A
+then dropped gb_momentum_30d_raw (2026-11-02) for parsimony: it is national, nearly collinear with gen_margin_raw
+(r = 0.92 across elections), and its coefficient swung by 2-3 points when one training election was dropped, for a
+small accuracy edge (about 0.1 MAE, mostly 2018). See 01_reg_model_a_no_momentum.ipynb and
 01_reg_generic_ballot_smoothing.ipynb, which were run with momentum still in Model A.
 
 Methodological choices, all fixed by the configurations below:
 
-- Estimation: both models by equal-year WLS (experiments.house.run.run_wls with equal_year=True). A training race is
+- Estimation: both models by equal-year WLS (house.experiments.run.run_wls with equal_year=True). A training race is
   weighted by 1 / n_t, n_t = the valid training races of its election year (after exclusions), so every training year
   carries the same total weight. Weights are recomputed from each window's own training rows.
 - Signs: inc_signed is +1 for a Democratic incumbent, -1 for a Republican one, 0 for an open seat. pres_party_signed is
@@ -36,7 +36,7 @@ Methodological choices, all fixed by the configurations below:
 - 2024: the holdout (config.HOLDOUT_YEARS) was used once to validate the frozen specification, so these production runs
   use it deliberately (USE_HOLDOUT): as the 2024 rolling window's eval year, and in training for 2026.
 
-Usage (a notebook in notebooks/house: put src/ and the repository root on sys.path first, as the other notebooks do):
+Usage (a notebook: put src/ on sys.path first, as the other notebooks do):
 
     from house import stage1
 
@@ -57,8 +57,8 @@ from types import MappingProxyType
 import pandas as pd
 
 import house.regression as hr
-from experiments.house import evaluation
-from experiments.house.run import RegressionResult, run_wls
+from house.experiments import evaluation
+from house.experiments.run import RegressionResult, run_wls
 from house.regression.schema import KEY
 
 TARGET = "adj_margin_2p_norm"
