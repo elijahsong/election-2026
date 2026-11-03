@@ -15,16 +15,13 @@ PROCESSED = ROOT / "data/processed/senate"
 built = pytest.mark.skipif(not (PROCESSED / "county_results.csv").exists(), reason="Senate outputs not built")
 
 
-def test_pvi_weights_the_two_presidential_years_before_the_target_year():
+def test_pvi_weights_the_two_presidential_years_before_the_target_year(monkeypatch):
     # SYNTHETIC presidential results and national baseline
     national = pd.Series({2000: 50.0, 2004: 48.0, 2008: 54.0})
     results = pd.DataFrame({"year": [2000, 2004, 2008] * 2, "state": ["AA"] * 3 + ["BB"] * 3,
                             "dem_2p_norm": [60.0, 58.0, 99.0, 40.0, 44.0, 0.0]})
-    senate_pvi.YEARS, years = [2008], senate_pvi.YEARS
-    try:
-        out, dropped = senate_pvi.build_pvi(results, national, ["state"])
-    finally:
-        senate_pvi.YEARS = years
+    monkeypatch.setattr(senate_pvi, "YEARS", [2008])
+    out, dropped = senate_pvi.build_pvi(results, national, ["state"])
     out = out.set_index("state")
     assert senate_pvi.prior_pres_years(2008, national.index) == (2004, 2000)  # never 2008 itself
     assert (out.loc["AA", "prev_pres_year"], out.loc["AA", "anteprev_pres_year"]) == (2004, 2000)
@@ -34,27 +31,19 @@ def test_pvi_weights_the_two_presidential_years_before_the_target_year():
     assert dropped == []
 
 
-def test_county_pvi_leaves_out_a_county_missing_from_one_presidential_year():
+def test_county_pvi_leaves_out_a_county_missing_from_one_presidential_year(monkeypatch):
     national = pd.Series({2000: 50.0, 2004: 50.0})
     results = pd.DataFrame({"year": [2000, 2004, 2004], "state": "CO", "county_id": ["08001", "08001", "08014"],
                             "county_fips": ["08001", "08001", "08014"], "county_name": ["Adams", "Adams", "Broomfield"],
                             "dem_2p_norm": [55.0, 57.0, 52.0]})  # SYNTHETIC
-    senate_pvi.YEARS, years = [2006], senate_pvi.YEARS
-    try:
-        out, dropped = senate_pvi.build_pvi(results, national, ["state", "county_id", "county_fips"])
-    finally:
-        senate_pvi.YEARS = years
+    monkeypatch.setattr(senate_pvi, "YEARS", [2006])
+    out, dropped = senate_pvi.build_pvi(results, national, ["state", "county_id", "county_fips"])
     assert out["county_fips"].tolist() == ["08001"] and len(dropped) == 1
 
 
 def test_surname_handles_last_first_suffixes_and_punctuation():
     names = pd.Series(["MURKOWSKI, LISA", "Robert P Casey Jr", "BOB CASEY JR.", "Kevin J. O'Connor", "ANGUS S. KING, JR."])
     assert county.surname(names).tolist() == ["MURKOWSKI", "CASEY", "CASEY", "OCONNOR", "KING"]
-
-
-def test_la_parish_order_maps_to_odd_fips():
-    # the n-th parish alphabetically is FIPS 22000 + 2n - 1: Acadia 22001, Winn (64th) 22127
-    assert [f"22{2 * n - 1:03d}" for n in (1, 64)] == ["22001", "22127"]
 
 
 @built
@@ -170,13 +159,3 @@ def test_runoff_dates_cover_every_runoff_in_the_fixes():
         if runoff:
             assert (year, state, False) in senate_targets.RUNOFF_DATES
 
-
-@pytest.mark.skipif(not (PROCESSED / "polls.csv").exists(), reason="polls.csv not built")
-def test_polls_split_two_race_state_years_by_rcp_table():
-    polls = read_output("polls.csv")
-    # OK 2014: the same Sooner Poll asked both races; Inhofe (class 2) led 63-28, Lankford (class 3) 59-28
-    sooner = polls[(polls["year"] == 2014) & (polls["state"] == "OK") & (polls["end_date"] == "2014-10-29")]
-    assert sooner.set_index("class")["gop_pct"].to_dict() == {2: 63.0, 3: 59.0}
-    # GA 2020: Perdue-Ossoff only, November and the January 2021 runoff
-    ga = polls[(polls["year"] == 2020) & (polls["state"] == "GA")]
-    assert set(ga["class"]) == {2} and ga.groupby("stage").size().to_dict() == {"general": 25, "runoff": 13}

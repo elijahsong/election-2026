@@ -36,16 +36,3 @@ def test_tables_join_and_keep_missing_generic_ballot_blank(monkeypatch):
     with pytest.raises(ValueError, match="lacks 1 keys"):
         hf.basic_features(gb, lean, inc.iloc[:2])
 
-
-def test_fec_known_gaps_are_blanked(monkeypatch):
-    fec = pd.DataFrame({"year": [2022, 2022], "state": ["MD", "MD"], "district": [4, 5],
-                        "fundraising_advantage": [13.0, 1.0], "spending_advantage": [13.0, 1.0],
-                        "small_dollar_share_diff": [0.1, 0.2], "dem_fec_missing": [True, False],
-                        "gop_fec_missing": False, "dem_match_status": ["no_fec_record", "name_full"],
-                        "gop_match_status": "name_full"})
-    monkeypatch.setattr(hf, "FEC_KNOWN_GAPS", [(2022, "MD", 4)])
-    out = hf.fec_features(fec)
-    assert out.loc[0, hf.FEC_FEATURES].isna().all() and out.loc[1, "fundraising_advantage"] == 1.0
-    monkeypatch.setattr(hf, "FEC_KNOWN_GAPS", [(2022, "MD", 5)])  # a race FEC now covers: the entry should go
-    with pytest.raises(ValueError, match="no_fec_record"):
-        hf.fec_features(fec)

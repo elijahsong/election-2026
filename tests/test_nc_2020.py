@@ -28,22 +28,17 @@ def test_pareto_median_recovers_a_pareto_distribution():
     assert median == pytest.approx(1000 * 2 ** (1 / 1.5))
     assert nc_2020.interpolated_median([counts], edges)[0] > median  # linear overshoots on a falling density
 
-
-def test_median_in_open_top_bin_raises():
-    with pytest.raises(ValueError, match="open-ended"):
-        nc_2020.interpolated_median([[1, 1, 5]], [0, 10, 20])
-
-
-def test_empty_distribution_raises():
-    with pytest.raises(ValueError, match="empty"):
-        nc_2020.interpolated_median([[0, 0, 0]], [0, 10, 20])
-
-
-def test_pareto_falls_back_to_linear_without_a_tail_or_lower_edge():
-    # median bin [10, 20) has nobody above it, and a median in the bottom bin has lower edge 0
+    # with nobody above the median bin, or a median in the bottom bin (lower edge 0), Pareto falls back to linear
     for counts in ([[1, 5, 0]], [[6, 1, 1]]):
         linear = nc_2020.interpolated_median(counts, [0, 10, 20])
         assert nc_2020.interpolated_median(counts, [0, 10, 20], pareto=True).tolist() == linear.tolist()
+
+
+def test_median_in_open_top_bin_or_empty_distribution_raises():
+    with pytest.raises(ValueError, match="open-ended"):
+        nc_2020.interpolated_median([[1, 1, 5]], [0, 10, 20])
+    with pytest.raises(ValueError, match="empty"):
+        nc_2020.interpolated_median([[0, 0, 0]], [0, 10, 20])
 
 
 def test_unit_weights_split_by_population_with_area_fallback():
@@ -69,6 +64,7 @@ def test_aggregate_conserves_totals_and_rejects_unit_mismatch():
         nc_2020.aggregate(values.drop(index="b"), weights)
 
 
+@pytest.mark.live
 @pytest.mark.skipif(not os.getenv("CENSUS_API"), reason="needs a Census API key")
 def test_live_rebuild_matches_published_116th_districts():
     diff = nc_2020.sanity_check(os.environ["CENSUS_API"]).abs()

@@ -1,0 +1,6 @@
+race_id,chamber,predicted_winner_party,candidate_name,win_probability,model_party,model_candidate,model_probability,reason
+TX-35,House,D,Johnny Garcia,0.504075,R,Carlos De La Cruz,0.504075,"user judgment (2026-11-03): push the WI-03 to TX-35 range of R-called races to D; probability = the model's, mirrored"
+IA-02,House,D,Lindsay James,0.538450,R,Joe Mitchell,0.538450,"user judgment (2026-11-03): push the WI-03 to TX-35 range of R-called races to D; probability = the model's, mirrored"
+ME-02,House,D,Matthew Dunlap,0.565275,R,Paul LePage,0.565275,"user judgment (2026-11-03): candidate quality; probability = the model's, mirrored"
+WI-03,House,D,Rebecca Cooke,0.590825,R,Derrick Van Orden,0.590825,"user judgment (2026-11-03): candidate quality; probability = the model's, mirrored"
+AK-SEN,Senate,D,Mary Peltola,0.5416,R,Dan S. Sullivan,0.5416,"user judgment (2026-11-03): Peltola favored (polls D+2.4, ratings Lean D / Tossup / Tossup); probability = the model's, mirrored"

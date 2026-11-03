@@ -102,9 +102,8 @@ def test_observed_races_are_untouched_and_dr_writein_is_not_a_reference():
     # with NC-6 (residual 800 / 850 - 0.10) as a reference, NC-3 would differ from the two-reference result
     assert out.loc[(2014, "NC", 3), "dem_votes_imputed"] == 641
 
-
-def test_rerunning_gives_the_same_frame():
-    _, targets, lean = contests()
-    once = imp.impute_uncontested(targets, lean, SHAVE)
+    # rerunning gives the same frame, without repeating any quality flag
+    once = out.reset_index()
     pd.testing.assert_frame_equal(imp.impute_uncontested(once, lean, SHAVE), once)
     assert once.loc[once["quality_flags"].notna(), "quality_flags"].str.count(";").eq(0).all()
+

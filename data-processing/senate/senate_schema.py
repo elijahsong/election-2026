@@ -86,12 +86,35 @@ NAT_POLITICAL_F = {
                      "gb_momentum_30d_raw", "gb_margin_30d_mean_2p_norm", "gb_margin_30d_ewma_2p_norm",
                      "gb_momentum_30d_2p_norm"], "float64"),
 }
-# senate_polls.py: one row per poll question (source_line is its line in the raw file)
-POLLS = {
-    "year": "int64", "state": "str", "class": "int64", "stage": "str", "rcp_table": "int64", "pollster": "str",
-    "start_date": "str", "end_date": "str", "sample_size": "Int64", "sample_type": "str",
+# 2026's generic-ballot row is one election-eve value transcribed by hand from FiftyPlusOne (01-generic-ballot.ipynb):
+# no hi/lo bands and, without 30 days of history, no trend fields. Every FiveThirtyEight year has all of them.
+GB_BANDS_AND_TRENDS = ["gb_dem_hi", "gb_dem_lo", "gb_gop_hi", "gb_gop_lo", "gb_margin_30d_mean_raw",
+                       "gb_margin_30d_ewma_raw", "gb_momentum_30d_raw", "gb_margin_30d_mean_2p_norm",
+                       "gb_margin_30d_ewma_2p_norm", "gb_momentum_30d_2p_norm"]
+# Race identity shared by polls.csv and expert-ratings.csv (senate_polls.race_table): special is the
+# senate_incumbency.csv flag and election_id is "<year>_<state>_<class>"
+RACE_ID = {"year": "int64", "state": "str", "class": "int64", "special": "bool", "election_id": "str"}
+# senate_polls.py: polls_clean.csv has one row per poll question (source_line is its line in the raw file)
+POLLS_CLEAN = {
+    **RACE_ID, "stage": "str", "rcp_table": "int64", "pollster": "str", "pollster_raw": "str",
+    "pollster_partisan": "str", "start_date": "str", "end_date": "str", "sample_size": "Int64", "sample_type": "str",
+    "dem_candidate": "str", "gop_candidate": "str", "ind_candidate": "str", "matchup": "str",
     "dem_pct": "float64", "gop_pct": "float64", "other_pct": "float64", "margin_raw": "float64",
-    "margin_2p_norm": "float64", "in_earlier_table": "bool", "quality_flags": "str", "source_line": "int64",
+    "poll_margin_dem": "float64", "is_duplicate": "bool", "duplicate_of": "Int64", "quality_flags": "str",
+    "source_line": "int64",
+}
+# polls.csv: one row per race (senate_incumbency.csv, 2006-2026), the mean of its eligible polls
+POLLS = {
+    **RACE_ID, "election_date": "str", "cutoff_date": "str", "window_start": "str", "poll_margin_dem": "float64",
+    "n_polls": "Int64", "n_pollsters": "Int64", "latest_poll_date": "str", "poll_available": "bool",
+    "poll_source": "str", "quality_flags": "str",
+}
+# senate_ratings.py: expert-ratings.csv, one row per race 2016-2026
+_PROVIDERS = ["sabato", "cook", "ie"]
+EXPERT_RATINGS = {
+    **RACE_ID, **{f"{p}_rating": "str" for p in _PROVIDERS}, **{f"{p}_prob_dem": "float64" for p in _PROVIDERS},
+    "expert_consensus_dem": "float64", "n_experts": "int64", "coverage_complete": "bool", "as_of_date": "str",
+    "quality_flags": "str", "source": "str",
 }
 PRES_STATE = {"year": "int64", "state": "str", **dict.fromkeys(_VOTES, "Int64"),
               "dem_2p_norm": "float64", "gop_2p_norm": "float64", "margin_2p_norm": "float64"}
@@ -119,16 +142,23 @@ OUTPUTS = {
     "prices_f.csv": (PRICES_F, KEY, set(_PRICE_FEATURES)),
     "acs_f.csv": (ACS_F, KEY, set()),
     "fec_f.csv": (FEC_F, KEY, {"small_dollar_share_diff"}),
-    # 2026 has no generic-ballot row, so gen_margin_raw and every gb_ column are blank there
+    # a year without a generic-ballot row would leave gen_margin_raw and every gb_ column blank
     "modeling.csv": (MODELING, KEY, {"gen_margin_raw", "small_dollar_share_diff", *_PRICE_FEATURES,
                                      *(c for c in NAT_POLITICAL_F if c != "year")}),
     "state_pvi.csv": (STATE_PVI, ["year", "state"], set()),
     "county_pvi.csv": (COUNTY_PVI, ["year", "state", "county_id", "county_fips"], set()),
     "county_results.csv": (COUNTY_RESULTS, COUNTY_KEY, None),
     "county_results_supp.csv": (COUNTY_RESULTS_SUPP, [*COUNTY_KEY, "contest"], None),
-    "nat_political_f.csv": (NAT_POLITICAL_F, ["year"], set()),
-    "polls.csv": (POLLS, ["source_line"], {"sample_size", "sample_type", "dem_pct", "gop_pct", "other_pct",
-                                           "margin_raw", "margin_2p_norm", "quality_flags"}),
+    "nat_political_f.csv": (NAT_POLITICAL_F, ["year"], set(GB_BANDS_AND_TRENDS)),
+    "polls_clean.csv": (POLLS_CLEAN, ["source_line"], {"pollster_partisan", "sample_size", "sample_type",
+                                                       "dem_candidate", "gop_candidate", "ind_candidate", "dem_pct",
+                                                       "gop_pct", "other_pct", "margin_raw", "poll_margin_dem",
+                                                       "duplicate_of", "quality_flags"}),
+    # n_polls / n_pollsters are blank for a published average (2026 FiftyPlusOne), whose poll count isn't known
+    "polls.csv": (POLLS, KEY, {"poll_margin_dem", "n_polls", "n_pollsters", "latest_poll_date", "poll_source",
+                               "quality_flags"}),
+    "expert-ratings.csv": (EXPERT_RATINGS, KEY, {*(c for c in EXPERT_RATINGS if c.startswith(tuple(_PROVIDERS))),
+                                                 "expert_consensus_dem", "as_of_date", "quality_flags"}),
     "pres_state_votes.csv": (PRES_STATE, ["year", "state"], set()),
     "pres_county_votes.csv": (PRES_COUNTY, ["year", "state", "county_id", "county_fips"], set()),
 }

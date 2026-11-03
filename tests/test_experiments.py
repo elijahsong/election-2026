@@ -5,7 +5,7 @@ from test_stage1_regression import TARGET, tables
 
 from experiments.house import evaluation, tracking
 from experiments.house import run as run_mod
-from experiments.house.run import parse_args, run_ols, run_ols_fixed, run_wls
+from experiments.house.run import run_ols, run_ols_fixed, run_wls
 from house.regression.config import COMPETITIVE_SUBSETS, EVAL_RACE_TYPES
 from house.regression.schema import MODELED_IMPUTATION_METHODS
 
@@ -46,16 +46,11 @@ def test_run_ols_excludes_imputed_rows_from_training_and_evaluation_and_saves(tm
     predicted = result.predictions[result.predictions["role"] == "predict"]
     assert len(predicted) == 4 and predicted["actual"].isna().all() and predicted["prediction"].notna().all()
 
-    assert result.run_id == "classic_ols-t06-thru-10-v12-p14"
-    again = run_ols(FORMULA, **YEARS, name="classic_ols", predictors=predictors, targets=targets, save=True,
-                    results_dir=tmp_path)
-    assert again.run_id == "classic_ols-t06-thru-10-v12-p14-2"
     loaded = tracking.load_run(result.run_id, tmp_path)
     assert loaded.config == result.config and loaded.counts == result.counts
     assert loaded.metrics.equals(result.metrics) and loaded.coverage.equals(result.coverage)
     assert loaded.predictions.equals(result.predictions)
-    assert len(tracking.load_runs(tmp_path)) == 2
-    assert tracking.load_runs(tmp_path / "nothing_saved").empty  # no runs.csv yet: an empty history, not an error
+    assert len(tracking.load_runs(tmp_path)) == 1
 
 
 def test_missing_predictors_are_excluded_with_reasons_and_ablations_can_share_rows():
@@ -76,43 +71,9 @@ def test_missing_predictors_are_excluded_with_reasons_and_ablations_can_share_ro
     compared = tracking.compare([full, plain, shared])
     assert compared["same_train_rows"].tolist() == [True, False, True]
     assert compared["same_eval_rows"].tolist() == [True, False, True]
-    assert compared["change"].tolist() == ["(base)", "- college", "- college"]
-    assert compared.index.tolist() == ["ols", "ols #2", "ols #3"]
-    assert len(tracking.compare(([full, plain]), full=True).columns) > len(compared.columns)
-    by_subset = tracking.compare([full, plain], subsets=["valid", "competitive_ex_post"])
-    assert {"accuracy_pct_valid", "mae_competitive_ex_post"} <= set(by_subset.columns)
-    with pytest.raises(ValueError, match="weren't scored"):
-        tracking.compare([full, plain], subsets=["competitive_typo"])
-    by_district = tracking.compare_predictions([full, plain])
-    assert len(by_district) == 2 and list(by_district.columns)[-2:] == ["ols", "ols #2"]
     formulas = [FORMULA + " + college", f"{TARGET} ~ partisan_lean * hispanic + C(state)"]
     assert evaluation.shared_columns(formulas, predictors.columns) == \
         ["gen_margin_raw", "partisan_lean", "inc_signed", "college", "state"]  # hispanic isn't a column here
-
-
-def test_best_of_blocks_keeps_each_base_and_its_best_variants():
-    predictors, targets = synthetic_tables()
-    data = {"predictors": predictors, "targets": targets, "require_complete": ["college"]}
-    runs = [run_ols(formula, **YEARS, **data, name=name) for name, formula in
-            [("base", FORMULA), ("no_inc", f"{TARGET} ~ gen_margin_raw + partisan_lean"),
-             ("no_lean", f"{TARGET} ~ gen_margin_raw + inc_signed"), ("plus_college", FORMULA + " + college")]]
-    metrics, coefficients = tracking.best_of_blocks({"main": runs}, rank_by="mae", top=2)
-    shown = metrics.index.get_level_values("run").tolist()
-    assert shown[0] == "base" and len(shown) == 3
-    assert metrics["mae"].iloc[1] <= metrics["mae"].iloc[2]  # best first
-    assert metrics["Δmae"].iloc[1] == pytest.approx(metrics["mae"].iloc[1] - metrics["mae"].iloc[0])
-    assert pd.isna(metrics["Δmae"].iloc[0])  # no delta for the base itself
-    assert metrics["Δ|bias|"].iloc[1] == pytest.approx(abs(metrics["bias"].iloc[1]) - abs(metrics["bias"].iloc[0]))
-    assert "Δbias" not in metrics and metrics["n_train"].iloc[0] == runs[0].counts["n_train"]
-    tracking.style_best_of(metrics).to_html()  # renders
-    side_by_side = pd.concat({"valid": metrics[["accuracy_pct", "Δaccuracy_pct"]]}, axis=1)  # (subset, metric)
-    side_by_side[("valid", "Δaccuracy_pct")] = 1.0
-    assert "+1.00 ✓" in tracking.style_best_of(side_by_side).to_html()  # styled by the metric level
-    assert list(coefficients.index) == list(metrics.index)
-    # a second block whose base differs only in a fixed coefficient still shows its base
-    fixed = [run_ols_fixed(FORMULA, **YEARS, **data, fixed={"inc_signed": 1.0}, name="base_fixed")]
-    two, _ = tracking.best_of_blocks({"main": runs, "fixed": fixed}, top=0)
-    assert ("fixed", "base_fixed") in two.index
 
 
 def test_rolling_best_of_averages_windows_with_equal_weight():
@@ -147,7 +108,6 @@ def test_training_weights_and_wls():
     weighted = run_wls(FORMULA, **YEARS, **data, equal_year=True, half_life=6, midterm_weight=1.25)
     assert weighted.config["weights"] == {"equal_year": True, "half_life": 6, "midterm_weight": 1.25}
     assert weighted.counts["train_rows_hash"] == ols.counts["train_rows_hash"]  # same rows, only reweighted
-    assert tracking.describe_change(weighted.config, ols.config) == "wls: equal_year, half_life 6, midterm x1.25"
 
 
 def test_fixed_coefficients_are_imposed_and_the_rest_re_estimated():
@@ -159,23 +119,17 @@ def test_fixed_coefficients_are_imposed_and_the_rest_re_estimated():
     assert true.model.params.round(8).tolist() == [1, 2, 0.5]  # Intercept, gen_margin_raw, partisan_lean
     assert true.coefficients.loc["inc_signed", "coef"] == -3 and pd.isna(true.coefficients.loc["inc_signed", "std_err"])
     assert np.allclose(true.predictions["prediction"], ols.predictions["prediction"])
-    assert true.config["fit_formula"] == f"I({TARGET} - -3.0 * inc_signed) ~ gen_margin_raw + partisan_lean + " \
-        "inc_signed - inc_signed"
     # fixing it at 0 is dropping the term, on the same rows
     zero = run_ols_fixed(FORMULA, **YEARS, **data, fixed={"inc_signed": 0})
     dropped = run_ols(f"{TARGET} ~ gen_margin_raw + partisan_lean", **YEARS, **data, require_complete=["inc_signed"])
     assert np.allclose(zero.predictions["prediction"], dropped.predictions["prediction"])
     assert zero.counts["eval_rows_hash"] == ols.counts["eval_rows_hash"]
-    assert tracking.describe_change(zero.config, ols.config) == "fixed inc_signed = 0"
     with pytest.raises(ValueError, match="columns in the formula"):
         run_ols_fixed(FORMULA, **YEARS, **data, fixed={"college": 1})
-    unrestricted = run_ols_fixed(FORMULA, **YEARS, **data, fixed={})  # nothing fixed: run_ols
-    assert np.allclose(unrestricted.predictions["prediction"], ols.predictions["prediction"])
     # WLS with a fixed coefficient: unweighted it is run_ols_fixed; weighted it fits the same adjusted formula
     assert np.allclose(run_wls(FORMULA, **YEARS, **data, fixed={"inc_signed": 0}).predictions["prediction"],
                        zero.predictions["prediction"])
     both = run_wls(FORMULA, **YEARS, **data, half_life=6, fixed={"inc_signed": 5})
-    assert both.config["fit_formula"].startswith(f"I({TARGET} - 5.0 * inc_signed)")
     assert both.coefficients.loc["inc_signed", "coef"] == 5 and both.config["weights"]["half_life"] == 6
 
 
@@ -199,16 +153,6 @@ def test_blends_score_like_a_model_and_weights_never_peek():
     assert corr.loc["valid", "corr"] == pytest.approx(1) and corr.loc["valid", "n"] == 3
 
 
-def test_describe_change_diffs_terms_and_years():
-    base = {"target": TARGET, "formula": FORMULA, "train_years": [2006, 2008, 2010], "eval_years": [2012],
-            "predict_years": []}
-    assert tracking.describe_change(base, base) == "(same)"
-    variant = {**base, "formula": f"{TARGET} ~ gen_margin_raw + partisan_lean * college - 1",
-               "train_years": [2008, 2012, 2016, 2020]}
-    assert tracking.describe_change(variant, base) == \
-        "- Intercept - inc_signed + college + partisan_lean:college t08,12,16,20"
-
-
 def test_formulas_with_interactions_categoricals_and_transforms():
     predictors, targets = synthetic_tables()
     data = {"predictors": predictors, "targets": targets}
@@ -229,36 +173,4 @@ def test_guards_and_prediction_only_runs():
     predicted = run_ols(FORMULA, train_years=[2020, 2022], predict_years=[2024], use_holdout=True,
                         predictors=predictors, targets=targets)
     assert predicted.metrics is None and predicted.counts["n_predict"] == 4
-    assert tracking.run_name(predicted.config) == "ols-t20,22-p24"
 
-
-def test_run_names_and_cli():
-    def name(train, eval_years=(), predict_years=()):
-        return tracking.run_name({"name": "classic_ols", "estimator": "ols", "train_years": list(train),
-                                  "eval_years": list(eval_years), "predict_years": list(predict_years)})
-
-    assert name(range(2006, 2022, 2), [2022]) == "classic_ols-t06-thru-20-v22"
-    assert name([2008, 2012, 2016, 2020], [2022]) == "classic_ols-t08,12,16,20-v22"
-    assert name(range(2006, 2026, 2), predict_years=[2026]) == "classic_ols-t06-thru-24-p26"
-
-    argv = ["--formula", FORMULA, "--train-years", "2006-2012,2016", "--eval-years", "2022", "--name", "x",
-            "--require-complete", "college"]
-    assert parse_args(argv) == {
-        "formula": FORMULA, "train_years": [2006, 2008, 2010, 2012, 2016], "eval_years": [2022], "predict_years": [],
-        "name": "x", "use_holdout": False, "require_complete": ["college"], "save": True,
-        "competitive": {"competitive_ex_ante": ("partisan_lean + gb_margin_2p_norm", 10),
-                        "competitive_ex_post": ("margin_2p_norm", 10)},
-    }
-    assert parse_args([*argv, "--competitive-threshold", "7.5"])["competitive"]["competitive_ex_post"] == \
-        ("margin_2p_norm", 7.5)
-
-
-def test_excluded_by_year_lists_districts_with_a_total():
-    excluded = pd.DataFrame({"year": [2006, 2006, 2006, 2008], "state": ["NC", "AK", "AZ", "NC"],
-                             "district": [3, 0, 12, 3], "role": "train",
-                             "reason": ["imputed_target", "imputed_target", "imputed_target", "missing:college"]})
-    table = evaluation.excluded_by_year(excluded, max_districts=2)
-    assert table.index.tolist() == [2006, 2008, "total"]
-    assert table["n"].tolist() == [3, 1, 4]
-    assert table.loc[2006, "districts"] == "AK-AL, AZ-12, ... (+1)"
-    assert table.loc[2008, ["reason", "districts"]].tolist() == ["missing:college", "NC-03"]

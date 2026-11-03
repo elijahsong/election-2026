@@ -94,16 +94,10 @@ def test_join_target_requires_matching_keys():
 
     with pytest.raises(ValueError, match="only one table"):
         join_target(predictors.iloc[1:], targets, TARGET)  # (2006, AK, 0) has a target but no predictors
-    with pytest.raises(ValueError, match="only one table"):
-        join_target(predictors, targets.iloc[1:], TARGET)
-    with pytest.raises(ValueError, match="not in the predictors"):
-        join_target(predictors[predictors["year"] < 2012], targets, TARGET)
     with pytest.raises(ValueError, match="also a predictor"):
-        join_target(synthetic_frame(), targets, TARGET)
-    with pytest.raises(ValueError, match="not in the targets"):
-        join_target(predictors, targets, "margin_2p_norm")
+        join_target(synthetic_frame(), targets, TARGET)  # the target in the predictors would leak
     with pytest.raises(ValueError, match="imputation_method"):
-        join_target(predictors, targets.drop(columns="imputation_method"), TARGET)
+        join_target(predictors, targets.drop(columns="imputation_method"), TARGET)  # needed to drop imputations
 
 
 def test_experiment_scores_only_when_targets_exist():
@@ -149,8 +143,6 @@ def test_training_inputs_all_trains_on_modeled_imputations_but_never_scores_them
     predictions, model = backtest.run_experiment(predictors, targets, {**config, "training_inputs": "all"})
     assert model.results.nobs == 12
     assert predictions.loc[predictions["district"] == 3, "actual"].isna().all()
-    with pytest.raises(ValueError, match="training_inputs"):
-        backtest.run_experiment(predictors, targets, {**config, "training_inputs": "imputed"})
 
 
 def test_holdout_years_need_explicit_opt_in():

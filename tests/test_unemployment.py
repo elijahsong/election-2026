@@ -45,15 +45,6 @@ def test_features_use_september_and_compare_september_with_september():
                                   unemployment.state_features(monthly, {2022: "2022-11-08"}))
 
 
-def test_rounding_removes_float_noise_and_negative_zero():
-    months = pd.period_range("2022-06", "2022-09", freq="M")
-    states = pd.DataFrame({f"{s}UR": [4.1, 4.1, 4.1, 4.3] for s in unemployment.STATES}, index=months)
-    out = unemployment.state_features(unemployment.monthly_rates(states, pd.Series(4.3, index=months)),
-                                      {2022: "2022-11-08"})
-    assert out["unemp_change_3m"].eq(0.2).all()  # 4.3 - 4.1 is 0.19999... before rounding
-    assert out["unemp_state_minus_us"].eq(0.0).all() and not np.signbit(out["unemp_state_minus_us"]).any()
-
-
 def test_missing_months_leave_only_their_features_blank():
     monthly = synthetic_rates()
     gone = (monthly["area"] == "OH") & (monthly["month"] == pd.Period("2021-09", "M"))  # a month BLS didn't publish

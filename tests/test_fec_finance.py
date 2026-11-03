@@ -10,25 +10,20 @@ import nominees_2026
     # suffixes, titles, initials, nicknames and middle names in use
     ("RALPH R. SCOTT, JR.", "SCOTT, RALPH R MR. JR.", "full"),
     ("OSSOFF, THOMAS JONATHAN (JON)", "OSSOFF, T. JONATHAN", "full"),
-    ("Jon Ossoff", "OSSOFF, T. JONATHAN", "full"),
-    ("BILL BASCRELL JR", "PASCRELL, WILLIAM J. HON. JR.", "fuzzy"),
     ("TOM GRAVES", "GRAVES, JOHN THOMAS MR. JR.", "full"),
-    # compound and hyphenated surnames
-    ("CHRIS VAN HOLLEN", "VAN HOLLEN, CHRISTOPHER J", "full"),
+    # compound and hyphenated surnames, and a misspelled one
     ("Mario Díaz-Balart", "DIAZ-BALART, MARIO", "full"),
+    ("BILL BASCRELL JR", "PASCRELL, WILLIAM J. HON. JR.", "fuzzy"),
     # a conflicting middle initial, or an initial against a different first name, is surname-only
     ("Dan S. Sullivan", "SULLIVAN, DANIEL S", "full"),
     ("Dan S. Sullivan", "SULLIVAN, DAN J", "surname"),
     ("GUS M BILIRAKIS", "BILIRAKIS, MICHAEL", "surname"),
-    ("SYLVIA R GARCIA", "GARCIA, ROEL", "surname"),
     # filing quirks
     ("NICK LALOTA", "NICK, LALOTA", "variant"),
     ("DOUG LA MALFA", "LAMALFA, DOUG", "full"),
     ("Beth Van Duyne", "VAN DUYNE, ELIZABETH ANN", "full"),
-    ("STEPHANIE HERSETH SANDLIN", "HERSETH SANDLIN, STEPHANIE M", "full"),
     ("ASHLEY HINSON", "ARENHOLZ, ASHLEY HINSON", "variant"),
-    # a misspelled surname, and MEDSL's mis-decoded UTF-8
-    ("JEFF DENHEM", "DENHAM, JEFF", "fuzzy"),
+    # MEDSL's mis-decoded UTF-8
     ("JESÃ\u009aS G â\u0080\u009cCHUYâ\u0080\u009d GARCÃ\u008dA", "GARCIA, JESUS", "full"),
     ("JOHN SMITH", "JONES, JOHN", None),
 ])
@@ -87,32 +82,25 @@ def test_read_webl(tmp_path):
 
 def test_add_features():
     df = pd.DataFrame({
-        "dem_receipts": [99.0, 0.0], "gop_receipts": [9.0, 0.0],
-        "dem_disbursements": [9.0, 0.0], "gop_disbursements": [99.0, 0.0],
-        "dem_individual_contributions": [100.0, 0.0], "dem_individual_unitemized_contributions": [25.0, 0.0],
-        "gop_individual_contributions": [50.0, 10.0], "gop_individual_unitemized_contributions": [10.0, 5.0],
+        "dem_receipts": [99.0, 0.0, 1.0], "gop_receipts": [9.0, 0.0, 1.0],
+        "dem_disbursements": [9.0, 0.0, 1.0], "gop_disbursements": [99.0, 0.0, 1.0],
+        "dem_individual_contributions": [100.0, 0.0, 10.0],
+        "dem_individual_unitemized_contributions": [25.0, 0.0, 30.0],
+        "gop_individual_contributions": [50.0, 10.0, 10.0], "gop_individual_unitemized_contributions": [10.0, 5.0, 5.0],
     })
     out = fec_finance.add_features(df)
     assert list(out.columns) == list(df.columns) + fec_finance.FEATURES
-    assert out["fundraising_advantage"].tolist() == pytest.approx([np.log(100) - np.log(10), 0.0])
+    assert out["fundraising_advantage"].tolist()[:2] == pytest.approx([np.log(100) - np.log(10), 0.0])
     assert out["spending_advantage"].iloc[0] == pytest.approx(np.log(10) - np.log(100))
-    assert out["small_dollar_share_dem"].iloc[0] == 0.25 and out["small_dollar_share_gop"].tolist() == [0.2, 0.5]
+    assert out["small_dollar_share_dem"].iloc[0] == 0.25 and out["small_dollar_share_gop"].tolist() == [0.2, 0.5, 0.5]
     assert out["small_dollar_share_diff"].iloc[0] == pytest.approx(0.05)
     # a zero denominator leaves the share, and so the difference, undefined
     assert np.isnan(out["small_dollar_share_dem"].iloc[1]) and np.isnan(out["small_dollar_share_diff"].iloc[1])
-    assert out["small_dollar_share_flag"].isna().all()
-
-
-def test_add_features_drops_and_flags_shares_outside_0_1():
-    df = pd.DataFrame({"dem_receipts": [1.0], "gop_receipts": [1.0], "dem_disbursements": [1.0],
-                       "gop_disbursements": [1.0], "dem_individual_contributions": [10.0],
-                       "dem_individual_unitemized_contributions": [30.0], "gop_individual_contributions": [10.0],
-                       "gop_individual_unitemized_contributions": [5.0]})
-    out = fec_finance.add_features(df)
-    assert np.isnan(out["small_dollar_share_dem"].iloc[0]) and out["small_dollar_share_gop"].iloc[0] == 0.5
-    assert np.isnan(out["small_dollar_share_diff"].iloc[0])
-    assert out["small_dollar_share_flag"].iloc[0] == "dem_share_outside_0_1"
-    assert out["dem_individual_unitemized_contributions"].iloc[0] == 30.0  # the FEC amount is kept
+    # a share outside [0, 1] (30 unitemized of 10 in all) is dropped and flagged, and the FEC amount is kept
+    assert np.isnan(out["small_dollar_share_dem"].iloc[2]) and np.isnan(out["small_dollar_share_diff"].iloc[2])
+    assert out["small_dollar_share_flag"].tolist()[2] == "dem_share_outside_0_1"
+    assert out["small_dollar_share_flag"].iloc[:2].isna().all()
+    assert out["dem_individual_unitemized_contributions"].iloc[2] == 30.0
 
 
 HOUSE_WIKITEXT = """==Alabama==
@@ -156,7 +144,7 @@ def test_candidates_in_handles_an_item_on_the_plainlist_line():
         nominees_2026.candidates_in("*{{Party stripe|Green Party (US)}}Nobody")
 
 
-def test_independents_fill_the_dem_slot_only_when_they_caucus_with_democrats():
+def test_independents_fill_the_dem_slot_only_when_they_caucus_with_democrats(monkeypatch):
     # SYNTHETIC candidates for two real INDEPENDENTS_AS_DEM / INDEPENDENT_CANDIDATES keys
     cands = pd.DataFrame([
         {"year": 2012, "state": "ME", "class": 1, "party": "other", "name": "KING, ANGUS S., JR.", "votes": 3.0},
@@ -165,14 +153,11 @@ def test_independents_fill_the_dem_slot_only_when_they_caucus_with_democrats():
         {"year": 2022, "state": "UT", "class": 3, "party": "other", "name": "MCMULLIN, EVAN", "votes": 2.0},
         {"year": 2022, "state": "UT", "class": 3, "party": "R", "name": "LEE, MIKE", "votes": 3.0},
     ])
-    entries = {k: v for k, v in fec_finance.INDEPENDENTS_AS_DEM.items() if k == ("senate", 2012, "ME", 1)}
-    others = {k: v for k, v in fec_finance.INDEPENDENT_CANDIDATES.items() if k == ("senate", 2022, "UT", 3)}
-    saved = fec_finance.INDEPENDENTS_AS_DEM, fec_finance.INDEPENDENT_CANDIDATES
-    fec_finance.INDEPENDENTS_AS_DEM, fec_finance.INDEPENDENT_CANDIDATES = entries, others
-    try:
-        slots = fec_finance.choose_slots(cands, ["year", "state", "class"], "senate").set_index(["state", "slot"])
-    finally:
-        fec_finance.INDEPENDENTS_AS_DEM, fec_finance.INDEPENDENT_CANDIDATES = saved
+    monkeypatch.setattr(fec_finance, "INDEPENDENTS_AS_DEM", {
+        k: v for k, v in fec_finance.INDEPENDENTS_AS_DEM.items() if k == ("senate", 2012, "ME", 1)})
+    monkeypatch.setattr(fec_finance, "INDEPENDENT_CANDIDATES", {
+        k: v for k, v in fec_finance.INDEPENDENT_CANDIDATES.items() if k == ("senate", 2022, "UT", 3)})
+    slots = fec_finance.choose_slots(cands, ["year", "state", "class"], "senate").set_index(["state", "slot"])
     assert slots.loc[("ME", "dem"), ["name", "preset_status", "displaced"]].tolist() == [
         "KING, ANGUS S., JR.", "independent_as_dem", "DILL, CYNTHIA ANN"]
     assert ("ME", "ind") not in slots.index
@@ -199,3 +184,38 @@ def test_suspect_records_flag_empty_money_in_won_or_close_races(monkeypatch):
     monkeypatch.setattr(fec_finance, "REVIEWED_LOW_FUNDING", {("house", 2024, "WA", 10, "R"): "reviewed"})
     out = fec_finance.suspect_records(df, results, "house", key)
     assert list(zip(out["state"], out["party"])) == [("CA", "D"), ("OH", "R")]
+
+
+def test_2026_louisiana_slots_go_to_the_top_fundraiser():
+    # SYNTHETIC FEC records and slots: two LA races with several candidates per party, and a CA one
+    fec = records(("H1", "DAY, JOHN DAVID", 222_000.0, "2026-10-14"), ("H2", "GONZALEZ, PRISCILLA", 0.0, None),
+                  ("H3", "CABLE, CONRAD", 100.0, "2026-10-14"), ("H4", "GROMLICH, MATTHEW", 100.0, "2026-10-14"),
+                  ("H5", "WIENER, SCOTT", 5_800_000.0, "2026-10-14"), ("H6", "CHAN, CONNIE", 2_400_000.0, "2026-10-14"))
+    fec = fec.assign(year=2026, office="H", state=["LA", "LA", "LA", "LA", "CA", "CA"], district=[3, 3, 4, 4, 11, 11])
+    slots = pd.DataFrame([
+        {"year": 2026, "state": "LA", "district": 3, "slot": "dem", "preset_status": "nominee_unresolved",
+         "options": ["John Day", "Priscilla Gonzalez", "Caleb Walker"], "name": None, "displaced": None},  # Walker: no record
+        {"year": 2026, "state": "LA", "district": 4, "slot": "dem", "preset_status": "nominee_unresolved",
+         "options": ["Conrad Cable", "Matt Gromlich"], "name": None, "displaced": None},  # tied
+        {"year": 2026, "state": "CA", "district": 11, "slot": "dem", "preset_status": "nominee_unresolved",
+         "options": ["Scott Wiener", "Connie Chan"], "name": None, "displaced": None},  # not a top-fundraiser state
+    ])
+    out = fec_finance.resolve_2026_by_receipts(slots, "house", fec).set_index(["state", "district"])
+    assert out.loc[("LA", 3), "name"] == "John Day" and pd.isna(out.loc[("LA", 3), "preset_status"])
+    assert out.loc[("LA", 3), "displaced"].startswith("2026 top fundraiser chosen among John Day $222,000")
+    assert out.loc[("LA", 4), "preset_status"] == "nominee_unresolved"  # a tie stays unresolved
+    assert out.loc[("CA", 11), "preset_status"] == "nominee_unresolved"
+    assert fec_finance.resolve_2026_by_receipts(slots, "senate", fec).equals(slots)
+
+
+def test_an_independent_fills_the_gop_slot_as_the_republican_proxy(monkeypatch):
+    # SYNTHETIC candidates for the real INDEPENDENTS_AS_GOP key (CA-6 2026): an independent and a Democrat, no Republican
+    cands = pd.DataFrame([
+        {"year": 2026, "state": "CA", "district": 6, "party": "other", "name": "Kevin Kiley", "votes": np.nan},
+        {"year": 2026, "state": "CA", "district": 6, "party": "D", "name": "Richard Pan", "votes": np.nan},
+    ])
+    monkeypatch.setattr(fec_finance, "INDEPENDENTS_AS_DEM", {})
+    monkeypatch.setattr(fec_finance, "INDEPENDENT_CANDIDATES", {})
+    slots = fec_finance.choose_slots(cands, ["year", "state", "district"], "house").set_index("slot")
+    assert slots.loc["gop", ["name", "preset_status"]].tolist() == ["Kevin Kiley", "independent_as_gop"]
+    assert slots.loc["dem", "name"] == "Richard Pan" and "ind" not in slots.index

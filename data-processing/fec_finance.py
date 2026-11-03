@@ -21,9 +21,12 @@ Nominees (one D and one R slot per race; read-only from the repo's sources):
   2026              data/raw/nominees_2026/{house,senate}.csv, built by nominees_2026.py from pinned Wikipedia revisions
   A party's slot is its leading named general-election candidate by votes (jungle, top-two, RCV and party write-ins
   can give a party more than one; {party}_candidate_count says how many). In 2026 there are no votes yet: a party's only
-  candidate fills the slot; with several, the one FEC flags as the incumbent does, else the slot is nominee_unresolved.
+  candidate fills the slot; with several, the one FEC flags as the incumbent does. Failing that, in
+  TOP_FUNDRAISER_STATES_2026 (Louisiana) the party's top FEC fundraiser does (resolve_2026_by_receipts); elsewhere the
+  slot is nominee_unresolved.
   INDEPENDENTS_AS_DEM puts the independents who caucus with Democrats (Sanders, King) in the dem slot, with
-  dem_is_independent True. INDEPENDENT_CANDIDATES (Orman, McMullin, Osborn, Buchanan) stay independents: their FEC
+  dem_is_independent True. INDEPENDENTS_AS_GOP puts an independent in the gop slot as the Republican proxy (Kiley,
+  CA-6 2026); only the model slot changes, and his ballot party stays independent. INDEPENDENT_CANDIDATES (Orman, McMullin, Osborn, Buchanan) stay independents: their FEC
   totals are in a third slot, ind_, and the dem slot is the race's D nominee (or no_nominee). Party labels are
   otherwise strict: an independent is never a D or R nominee.
 
@@ -45,12 +48,13 @@ match_status, per slot:
   fec_api                 API_CORRECTIONS: the cycle totals from the FEC API, for a nominee missing from both bulk files
                           or whose only record there is empty
   independent_as_dem      INDEPENDENTS_AS_DEM
+  independent_as_gop      INDEPENDENTS_AS_GOP
   independent             INDEPENDENT_CANDIDATES (the ind slot)
   no_fec_record           the nominee is known but has no FEC record
   ambiguous               several different FEC records match equally well; none is used
   no_nominee              the party had no general-election candidate
   nominee_unresolved      several candidates of the party and no way to pick one: 2026 without a single incumbent
-                          (no votes yet), or tied leaders
+                          (no votes yet) outside TOP_FUNDRAISER_STATES_2026, or tied leaders
 
 Missing data: amounts are 0 when there is no nominee or no usable FEC record (no_nominee, no_fec_record, ambiguous),
   with {party}_fec_missing True. They are blank for nominee_unresolved, whose nominee isn't known, and every ind_
@@ -128,6 +132,21 @@ INDEPENDENTS_AS_DEM = {
     # King caucuses with Democrats; the D nominee was a distant third each time
     **{("senate", year, "ME", 1): "KING, ANGUS S., JR." for year in (2012, 2018, 2024)},
 }
+# 2026 House races where a party with several candidates and no single incumbent is represented by its top FEC
+# fundraiser (resolve_2026_by_receipts). Louisiana's November ballot lists every party's candidates in one round, and
+# for 2006-2024 the slot is the party's leading vote-getter; before any votes, the top fundraiser is the stand-in
+# known in advance (decision 2026-11-02; LA-3 to LA-6). Not applied to California's same-party top-two races
+# (CA-11, CA-14, CA-40), which have no opposite-party candidate and are left unresolved for now.
+TOP_FUNDRAISER_STATES_2026 = {"LA"}
+# Independents who fill the gop slot as the Republican proxy for the regression and fundraising features (status
+# independent_as_gop). Only the model slot: their ballot party stays independent, and Stage 2 counts their win as
+# OTHER (src/house/simulation/races.py). key as above
+INDEPENDENTS_AS_GOP = {
+    # Kiley, the incumbent (inc_signed -1, house_incumbency), runs as an independent against Richard Pan (D), with no
+    # Republican on the ballot (decision 2026-11-02)
+    ("house", 2026, "CA", 6): "Kevin Kiley",
+}
+INDEPENDENT_STATUSES = ("independent_as_dem", "independent_as_gop", "independent")
 # Other leading independents, who didn't commit to caucusing with Democrats: never the D nominee, so the dem slot
 # keeps the race's Democrat (or no_nominee). Their FEC totals are kept in the ind slot (status independent).
 # key as above
@@ -568,7 +587,8 @@ def match_slot(nominee: str, party: str, race: dict, chamber: str, fec: pd.DataF
 def choose_slots(cands: pd.DataFrame, key: list[str], chamber: str) -> pd.DataFrame:
     """One row per race and party slot (dem, gop), plus an ind slot for each INDEPENDENT_CANDIDATES race: the chosen
     candidate's name (blank for no_nominee and nominee_unresolved), candidate_count, and preset_status
-    (independent_as_dem / independent / no_nominee / nominee_unresolved, or blank when the name is to be matched).
+    (independent_as_dem / independent_as_gop / independent / no_nominee / nominee_unresolved, or blank when the name
+    is to be matched).
     2026 slots with several candidates carry their names in `options`."""
     rows = []
     for values, race in cands.groupby(key):
@@ -590,11 +610,12 @@ def choose_slots(cands: pd.DataFrame, key: list[str], chamber: str) -> pd.DataFr
             rows.append(row)
     slots = pd.DataFrame(rows)
 
-    # INDEPENDENTS_AS_DEM: the named independent takes the dem slot; INDEPENDENT_CANDIDATES: an ind slot
+    # INDEPENDENTS_AS_DEM / _AS_GOP: the named independent takes the dem / gop slot; INDEPENDENT_CANDIDATES: an ind slot
     slots["displaced"] = None
     seat_col = "district" if chamber == "house" else "class"
     independents = []
-    for table, entries in [("INDEPENDENTS_AS_DEM", INDEPENDENTS_AS_DEM), ("INDEPENDENT_CANDIDATES", INDEPENDENT_CANDIDATES)]:
+    for table, entries in [("INDEPENDENTS_AS_DEM", INDEPENDENTS_AS_DEM), ("INDEPENDENTS_AS_GOP", INDEPENDENTS_AS_GOP),
+                           ("INDEPENDENT_CANDIDATES", INDEPENDENT_CANDIDATES)]:
         for (ch, year, state, seat), name in entries.items():
             if ch != chamber:
                 continue
@@ -606,10 +627,11 @@ def choose_slots(cands: pd.DataFrame, key: list[str], chamber: str) -> pd.DataFr
                 independents.append({"year": year, "state": state, seat_col: seat, "slot": "ind", "candidate_count": 1,
                                      "name": name, "preset_status": "independent", "options": None, "displaced": None})
                 continue
+            slot = "dem" if table == "INDEPENDENTS_AS_DEM" else "gop"
             hit = (slots["year"] == year) & (slots["state"] == state) & (slots[seat_col] == seat) \
-                & (slots["slot"] == "dem")
+                & (slots["slot"] == slot)
             slots.loc[hit, "displaced"] = slots.loc[hit, "name"]
-            slots.loc[hit, ["name", "preset_status", "options"]] = [name, "independent_as_dem", None]
+            slots.loc[hit, ["name", "preset_status", "options"]] = [name, f"independent_as_{slot}", None]
     return pd.concat([slots, pd.DataFrame(independents, columns=slots.columns)], ignore_index=True)
 
 
@@ -631,6 +653,34 @@ def resolve_2026_by_incumbent(slots: pd.DataFrame, chamber: str, fec: pd.DataFra
             out.loc[i, ["name", "preset_status"]] = [incumbents[0], None]
             out.at[i, "options"] = None
             out.loc[i, "displaced"] = "2026 incumbent chosen among " + "; ".join(row["options"])
+    return out
+
+
+def resolve_2026_by_receipts(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame) -> pd.DataFrame:
+    """A 2026 House slot in TOP_FUNDRAISER_STATES_2026 still unresolved after resolve_2026_by_incumbent goes to the
+    candidate whose FEC record (a full-name match in the district, as there) has the most receipts. A candidate
+    without such a record counts as no receipts. A tie, or no candidate with positive receipts, leaves the slot
+    unresolved."""
+    out = slots.copy()
+    if chamber != "house":
+        return out
+    todo = out["preset_status"].eq("nominee_unresolved") & (out["year"] == 2026) \
+        & out["state"].isin(TOP_FUNDRAISER_STATES_2026)
+    for i, row in out[todo].iterrows():
+        pool = fec[(fec["year"] == 2026) & (fec["office"] == "H") & (fec["state"] == row["state"])
+                   & (fec["district"] == row["district"])]
+        receipts = {}
+        for name in row["options"]:
+            outcome, records = pick(name, pool, full_only=True)
+            matched = outcome in ("full", "variant", "duplicate")
+            receipts[name] = float(records["receipts"].fillna(0).iloc[0]) if matched else 0.0
+        top = max(receipts.values())
+        leaders = [name for name, amount in receipts.items() if amount == top]
+        if top > 0 and len(leaders) == 1:
+            out.loc[i, ["name", "preset_status"]] = [leaders[0], None]
+            out.at[i, "options"] = None
+            out.loc[i, "displaced"] = "2026 top fundraiser chosen among " + "; ".join(
+                f"{name} ${amount:,.0f}" for name, amount in sorted(receipts.items(), key=lambda kv: -kv[1]))
     return out
 
 
@@ -657,7 +707,7 @@ def match_slots(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame, webl_only:
             if candidate_id is not None and len(records) != 1:
                 raise ValueError(f"MATCH_OVERRIDES {override_key}: {candidate_id} matches {len(records)} records")
         else:
-            independent = row["preset_status"] in ("independent_as_dem", "independent")
+            independent = row["preset_status"] in INDEPENDENT_STATUSES
             party = "other" if independent else PARTIES[row["slot"]]
             status, records = match_slot(row["name"], party, row, chamber, fec, webl_only, at_large)
             if independent and len(records) == 1:
@@ -672,7 +722,7 @@ def match_slots(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame, webl_only:
         for i, (row, status, records, at_large) in enumerate(matched):
             if status == "no_fec_record" and row["name"] is not None and \
                     (chamber, row["year"], row["state"], row[seat], SLOT_PARTY[row["slot"]]) not in MATCH_OVERRIDES:
-                party = "other" if row["preset_status"] in ("independent_as_dem", "independent") \
+                party = "other" if row["preset_status"] in INDEPENDENT_STATUSES \
                     else PARTIES[row["slot"]]
                 status, records = match_slot(row["name"], party, row, chamber, fec, webl_only, at_large, taken)
                 if len(records) == 1 and status != "ambiguous":
@@ -761,6 +811,7 @@ def build_chamber(chamber: str, races: pd.DataFrame, cands: pd.DataFrame, key: l
     empty = races.loc[~race_keys.isin(cand_keys), key].assign(party="none", name=None, votes=np.nan)
     slots = choose_slots(pd.concat([cands, empty], ignore_index=True), key, chamber)
     slots = resolve_2026_by_incumbent(slots, chamber, fec)
+    slots = resolve_2026_by_receipts(slots, chamber, fec)
     matched, review = match_slots(slots, chamber, fec, webl_only, counts_by_year)
     return wide(matched, races, key), matched, review
 
@@ -1003,7 +1054,7 @@ def main() -> None:
     print("\nReview (data/interim/fec_match_review.csv): " + ", ".join(
         f"{k} {v}" for k, v in review_df["match_status"].value_counts().items()))
     for status in ["ambiguous", "nominee_unresolved", "name_surname", "name_party_differs", "name_other_district",
-                   "independent_as_dem", "independent"]:
+                   "independent_as_dem", "independent_as_gop", "independent"]:
         rows = review_df[review_df["match_status"] == status]
         if len(rows):
             print(f"-- {status} ({len(rows)}):")

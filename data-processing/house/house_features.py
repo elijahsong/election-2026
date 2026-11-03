@@ -15,7 +15,8 @@ modeling.csv         basic_f, acs_f, fec_f and prices_f joined on year, state, d
                      on year
 
 District-level tables must have unique keys and exactly the same key set, and no column may appear in two of them.
-A year with no generic-ballot row (2026, until one is added) keeps blank generic-ballot fields; nothing is filled in.
+A year with no generic-ballot row keeps blank generic-ballot fields; nothing is filled in. (2026's row is a single
+election-eve value transcribed from FiftyPlusOne; see 01-generic-ballot.ipynb.)
 """
 
 import argparse

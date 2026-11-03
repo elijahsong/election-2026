@@ -25,3 +25,6 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src", "data-processing", "data-processing/house", "data-processing/senate", "."]
 testpaths = ["tests"]
+# Tests marked live call the Census API (about 35 s, needs CENSUS_API). They run only on request: pytest -m live
+addopts = "-m 'not live'"
+markers = ["live: calls the Census API; opt-in with -m live"]

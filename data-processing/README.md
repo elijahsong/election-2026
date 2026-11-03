@@ -182,12 +182,23 @@ Features:
 - **A party's slot is its leading general-election candidate by votes:** this covers jungle, top-two, RCV and party
   write-ins. Primary candidates and their money are never used.
 - **2026, which has no votes:** the party's only candidate fills the slot. With several, the one FEC flags `INCUMBENT`
-  does, provided exactly one is. Otherwise the slot is `nominee_unresolved`: CA-11, CA-14 and CA-40 (Calvert vs Kim)
-  and six Louisiana slots.
+  does, provided exactly one is.
+  - **Louisiana (`TOP_FUNDRAISER_STATES_2026`):** failing that, the party's top FEC fundraiser does
+    (`resolve_2026_by_receipts`; a tie, or nobody with receipts, stays unresolved). November is Louisiana's
+    all-candidate round, where 2006–2024 used the leading vote-getter; before votes, the top fundraiser is the stand-in
+    known in advance (decision 2026-11-02). This fills six slots: the D slots of LA-3 to LA-6 and the R slots of LA-5
+    and LA-6. The review file lists every candidate's receipts.
+  - Otherwise the slot is `nominee_unresolved`: CA-11 and CA-14 (two Democrats) and CA-40 (Calvert vs Kim). These
+    top-two races have no opposite-party candidate, so `fundraising_advantage` is blank there. How to handle them is
+    still to be decided.
 - **`INDEPENDENTS_AS_DEM`:** independents who caucus with Democrats take the `dem_` slot (`independent_as_dem`, with
   `dem_is_independent` True; the report lists any D nominee displaced):
   - Sanders (VT 2006, 2012, 2018, 2024)
   - King (ME 2012, 2018, 2024)
+- **`INDEPENDENTS_AS_GOP`:** an independent takes the `gop_` slot as the Republican proxy for the regression and
+  fundraising features (`independent_as_gop`). This is Kiley, CA-6 2026: the incumbent, running as an independent
+  against Pan (D) with no Republican. Only the model slot changes; his ballot party stays independent, and Stage 2
+  counts a Kiley win as OTHER (`src/house/simulation/races.py`).
 - **`INDEPENDENT_CANDIDATES`:** other leading independents stay independents. They never fill the `dem_` slot, which
   keeps the race's Democrat (or `no_nominee`), and their FEC totals are kept in a third slot, `ind_` (same columns
   as `dem_`, status `independent`; blank in every other race). The features use only `dem_` and `gop_`.
@@ -219,6 +230,7 @@ Candidate summary records are tried before webl-only ones. Nothing is matched on
 | `fec_api` | `API_CORRECTIONS`: cycle totals from the FEC API for a nominee missing from both bulk files |
 | `override` | `MATCH_OVERRIDES`: 15 reviewed cases, each commented (e.g. Gus vs Michael Bilirakis, Ron Estes vs Ron M. Estes) |
 | `independent_as_dem` | `INDEPENDENTS_AS_DEM` |
+| `independent_as_gop` | `INDEPENDENTS_AS_GOP` |
 | `independent` | `INDEPENDENT_CANDIDATES` (the `ind_` slot) |
 | `no_fec_record` / `ambiguous` | the nominee is known, but no record (or no single record) matches |
 | `no_nominee` | no candidate of that party on the general-election ballot |

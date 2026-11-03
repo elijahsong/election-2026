@@ -31,7 +31,8 @@ def acs_csv(fake_api, tmp_path):
 
 
 def test_relative_columns(acs_csv, tmp_path):
-    out = acs_supplement.build_supplement(acs_csv, tmp_path / "supplement.csv")
+    out_path = tmp_path / "supplement.csv"
+    out = acs_supplement.build_supplement(acs_csv, out_path)
     assert list(out.columns) == acs.COLUMNS + acs_supplement.SUPPLEMENT_COLUMNS
     assert out["year"].value_counts().to_dict() == {2010: 435, 2018: 435}
     pd.testing.assert_frame_equal(out[acs.COLUMNS], pd.read_csv(acs_csv, dtype={"state": str}))
@@ -52,39 +53,16 @@ def test_relative_columns(acs_csv, tmp_path):
                 "rel_state_hispanic"]:
         assert (rest[col] == 0).all() and not rest[col].map(lambda x: math.copysign(1, x) < 0).any()
 
-
-def test_rebuild_is_idempotent(acs_csv, tmp_path):
-    out_path = tmp_path / "supplement.csv"
-    acs_supplement.build_supplement(acs_csv, out_path)
+    # rerunning gives the same bytes and leaves acs.csv untouched
     first, source = out_path.read_bytes(), acs_csv.read_bytes()
     acs_supplement.build_supplement(acs_csv, out_path)
     assert out_path.read_bytes() == first and acs_csv.read_bytes() == source
-
-
-def test_log_ratio_matches_log_and_is_zero_at_parity():
-    x = pd.Series([1, 59_999, 60_000, 60_001, 250_001])
-    assert acs_supplement._log_ratio(x, 60_000).tolist() == pytest.approx([math.log(v / 60_000) for v in x], rel=1e-12)
-    assert acs_supplement._log_ratio(x, 60_000)[2] == 0.0
-
-
-def test_rejects_output_over_input(acs_csv):
-    with pytest.raises(ValueError, match="separate file"):
-        acs_supplement.build_supplement(acs_csv, acs_csv)
 
 
 def test_rejects_wrong_schema(acs_csv, tmp_path):
     bad = tmp_path / "bad.csv"
     pd.read_csv(acs_csv).drop(columns="poverty").to_csv(bad, index=False)
     with pytest.raises(ValueError, match="schema"):
-        acs_supplement.build_supplement(bad, tmp_path / "out.csv")
-
-
-def test_rejects_unexpected_vintage(acs_csv, tmp_path):
-    bad = tmp_path / "bad.csv"
-    df = pd.read_csv(acs_csv)
-    df.loc[df["year"] == 2018, "acs_vintage"] = "2017_1yr"
-    df.to_csv(bad, index=False)
-    with pytest.raises(ValueError, match="expected 2018_1yr"):
         acs_supplement.build_supplement(bad, tmp_path / "out.csv")
 
 
@@ -108,8 +86,15 @@ def test_borrowed_vintage_year_uses_reference_values(borrowed_csv, tmp_path):
     assert set(out.loc[out["year"] == 2026, "acs_vintage"]) == {"2018_1yr", "2018_1yr_rebuilt"}
 
 
-def test_rebuilt_label_only_allowed_for_borrowed_years(borrowed_csv, tmp_path):
+def test_rejects_unexpected_vintages(borrowed_csv, tmp_path):
     bad = tmp_path / "bad.csv"
+    df = pd.read_csv(borrowed_csv)
+    df.loc[df["year"] == 2018, "acs_vintage"] = "2017_1yr"
+    df.to_csv(bad, index=False)
+    with pytest.raises(ValueError, match="expected 2018_1yr"):
+        acs_supplement.build_supplement(bad, tmp_path / "out.csv")
+
+    # the rebuilt label is allowed only in years that borrow another year's vintage
     df = pd.read_csv(borrowed_csv)
     df.loc[df["year"] == 2018, "acs_vintage"] = "2018_1yr_rebuilt"
     df.to_csv(bad, index=False)

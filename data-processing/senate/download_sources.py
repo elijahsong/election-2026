@@ -23,6 +23,7 @@ so their files are only checked:
   ms-2018-senate-special-r1/  Mississippi 2018 general election precinct results
   ga_2020_senate_special_r1/  Georgia 2020 general election precinct results
   maine_sos_2024/         Maine SOS 2024 U.S. Senate results by municipality (UOCAVA ballots)
+  senate_ratings_historical/  JHK Forecasts' forecast archive (supplied as output.csv; download URL not recorded)
 
 A file already present is never downloaded again or changed. Each collection's SOURCE.md (written by hand) gives the
 citation, license, coverage and use.
@@ -152,6 +153,9 @@ SOURCES = {
     },
     "arkansas_sos_2022": {
         "FullDataFile.json": ("https://results.tally-enr.com/results/arkansas/1844/FullDataFile.json", None),
+    },
+    "senate_ratings_historical": {
+        "output.csv": (None, "0834c4fc53e9ffc2e1d7f651a6c87fa606bb02db325c41ce42ea8db25a15a67e"),
     },
     "All-US-Senate-polls-2006-2024": {
         "2006_to_2024_senate_polls.csv": (

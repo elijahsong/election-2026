@@ -131,11 +131,56 @@ python data-processing/house/house_features.py   # -> data/processed/house/{basi
 - **`prices_f.csv`:** each district gets its state's Census region values, from September of the election year (the
   last month BLS has published before Election Day), and its state's unemployment rates from September too. Run
   `cpi_gas.py` and `unemployment.py` first.
-- **2026** has no generic-ballot row yet, so its `gen_margin_raw` and `gb_*` fields are blank. Nothing is filled in.
+- **2026** has a single election-eve value (2026-11-02), transcribed by hand from FiftyPlusOne into `data/raw/generic_ballot_2026.csv` and read by `01-generic-ballot.ipynb`. It fills `gen_margin_raw` and the `gb_*` level fields. The hi/lo bands and the 30-day trend fields stay blank: FiftyPlusOne shows no bands, and one row has no history. Every earlier year comes from FiveThirtyEight's average.
 - `src/house/regression` loads `modeling.csv` as the predictors, so a feature set in its `config.py` can mix columns
   from every tranche. It loads the targets separately from `targets.csv`, and `modeling.csv` must not contain any.
   `run_experiment` joins the config's target on the key and raises unless the two tables have exactly the same keys
   in every year `targets.csv` covers. Years with predictors but no targets, such as 2026, get a blank target.
+
+# 2026 candidate registry (`candidates_2026.py`)
+
+```bash
+python data-processing/house/candidates_2026.py   # after nominees_2026.py and fec_finance.py -> data/processed/house/candidates_2026.csv
+```
+
+One row per general-election candidate listed for 2026 (1,158 in 435 districts):
+
+- **Columns:** `year, state, district, candidate_id, candidate_name, party, party_label, model_party, ballot_status, race_type, election_method, as_of_date, data_flags, source`.
+- **`party` and `party_label`:** the ballot party (D / R / other) and the source's label. Third parties and independents keep their identity.
+- **`model_party`:** the slot the candidate fills for Stage 1. It equals `party` except for `fec_finance.INDEPENDENTS_AS_GOP` (Kiley, CA-6, the Republican proxy, flagged `independent_as_gop`).
+- **`candidate_id`:** `fec_finance.py`'s reviewed match for slot nominees, else a full-name FEC match in the district. Blank and flagged `no_fec_record` / `fec_ambiguous` otherwise.
+- **`race_type`:** `house_targets.race_types` on the model-party counts, the historical targets' taxonomy.
+- **`election_method`:** `rcv` (ME, AK), `jungle` (LA), `top_two` (CA, WA), otherwise `standard`.
+- **`ballot_status`:** `listed_general_election`, what the source supports; it doesn't separate certified from pending candidates.
+- **`as_of_date`:** the pinned Wikipedia revision's date.
+
+Stage 2 (`src/house/simulation/races.py`) reads it for the 2026 race handling and candidate names.
+
+# Same-party top-two races (`top_two_same_party.py`)
+
+```bash
+python data-processing/house/top_two_same_party.py   # after candidates_2026.py -> data/processed/house/toptwosameparty.csv
+```
+
+One row per finalist in the registry's 2026 `dem_vs_dem` / `gop_vs_gop` races (18 candidates in CA-4, 7, 11, 12, 14,
+29, 34, 37 and 40). These are the inputs for a candidate-level `JungleSameParty` resolver. The party outcome is
+already fixed.
+
+- **Key:** `year, state, district, candidate_id`, with the registry's `candidate_name`, `party` and `race_type`.
+- **June primary:** the certified Statement of Vote ([`data/raw/ca_sos_primary_2026`](../../data/raw/ca_sos_primary_2026/README.md)).
+  - `primary_share` is out of all votes cast in the district; `primary_share_top_two` is out of the two finalists' votes.
+  - `primary_dem_share` / `primary_gop_share` are race-level, e.g. the Republican voters in CA-7 who have no finalist in November.
+  - `PRIMARY_NAME_ALIASES` maps registry names to ballot names where they differ (CA-29).
+- **Fundraising:** FEC's 2026 candidate summary, cycle to date (through Oct 14, so after the primary).
+  - `self_funding` is candidate contributions plus candidate loans.
+  - `fundraising_advantage` is log1p(own receipts) − log1p(opponent's receipts), `fec_finance.py`'s formula with the opponent in place of the other party.
+  - `individual_contribution_advantage` is the same on individual contributions, which leave out self-funding and loans (e.g. Jones, CA-4; Matsui's $5.4M loan, CA-7).
+- **Polls:** hand-entered in [`data/reference/top_two_same_party_polls_2026.csv`](../../data/reference/top_two_same_party_polls_2026.csv).
+  - The file has one row per finalist, by registry name: `poll_share, poll_count, pollster, poll_end_date`.
+  - A `poll_share` of `-1` means no poll, or one judged not usable. It becomes blank, never 0.
+  - `poll_share_top_two` drops the undecideds.
+  - As of 2026-11-02 there's one poll each for CA-7, 11 and 34. Pollster and end date weren't recorded.
+- **Checks:** every finalist matches exactly one primary candidate, one FEC record and one poll row, and the two finalists are their district's top two.
 
 # House election targets (`house_targets.py`)
 

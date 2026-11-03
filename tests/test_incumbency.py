@@ -69,12 +69,9 @@ def test_override_applies(one_year, monkeypatch):
     assert out.loc[("CA", 4), ["inc", "inc_signed", "incumbent_party", "incumbent_names"]].tolist() == [0, 0, "", ""]
     assert out.loc[("CA", 3), "status"].startswith("override")
 
-
-def test_override_must_match_a_row(one_year, monkeypatch):
     monkeypatch.setattr(incumbency, "HOUSE_OVERRIDES", {(2018, "CA", 99): (0, 0, "", "no such district")})
     with pytest.raises(ValueError, match="matches 0 rows"):
-        incumbency.apply_overrides(incumbency.build_house_historical(cage_rows(2018), COUNTS),
-                                   incumbency.HOUSE_OVERRIDES, incumbency.HOUSE_KEY)
+        incumbency.apply_overrides(house, incumbency.HOUSE_OVERRIDES, incumbency.HOUSE_KEY)
 
 
 def test_missing_district_raises(one_year):
@@ -158,18 +155,11 @@ def test_senate_classes_specials_and_2026(no_senate_fixes, tmp_path):
     assert len(out) == sum(len(CLASSES[c]) for c in SENATE_YEAR_CLASS.values()) + 1 + 33 + 1
 
 
-def test_senate_2026_party_must_match_inc(tmp_path):
-    with pytest.raises(ValueError, match="party must be given exactly when inc is 1"):
-        incumbency.read_senate_2026(senate_2026_csv(tmp_path, [("AK", 2, 0, 1, ""), ("AL", 2, 0, 0, "")]))
-
-
-def test_senate_2026_must_be_class_ii(no_senate_fixes, tmp_path):
-    rows = [(st, 2, 0, 1, "R") for st in CLASSES[2][1:]]  # one class II state missing
+def test_senate_classes_must_be_consistent(no_senate_fixes, tmp_path):
+    rows = [(st, 2, 0, 1, "R") for st in CLASSES[2][1:]]  # one class II state missing from 2026
     with pytest.raises(ValueError, match="exactly the class II states"):
         incumbency.build_senate(senate_cage(), incumbency.read_senate_2026(senate_2026_csv(tmp_path, rows)))
 
-
-def test_senate_class_membership_must_be_consistent(no_senate_fixes, tmp_path):
     cage = senate_cage()
     moved = (cage["year"] == 2012) & (cage["state"] == CLASSES[1][0])
     cage.loc[moved, "state"] = CLASSES[3][-1]  # a class I race in a state that isn't class I

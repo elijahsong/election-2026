@@ -1,0 +1,36 @@
+race_id,chamber,predicted_winner_party,candidate_name,win_probability
+AK-SEN,Senate,R,Dan S. Sullivan,0.5358
+AL-SEN,Senate,R,Barry Moore,0.99745
+AR-SEN,Senate,R,Tom Cotton,0.99875
+CO-SEN,Senate,D,John Hickenlooper,0.99885
+DE-SEN,Senate,D,Chris Coons,0.9988
+FL-SEN,Senate,R,Ashley Moody,0.8185
+GA-SEN,Senate,D,Jon Ossoff,0.9442
+IA-SEN,Senate,R,Ashley Hinson,0.5732
+ID-SEN,Senate,R,Jim Risch,0.9996
+IL-SEN,Senate,D,Juliana Stratton,0.99785
+KS-SEN,Senate,R,Roger Marshall,0.5299
+KY-SEN,Senate,R,Andy Barr,0.998
+LA-SEN,Senate,R,Julia Letlow,0.97715
+MA-SEN,Senate,D,Ed Markey,0.99975
+ME-SEN,Senate,D,Troy Jackson,0.89695
+MI-SEN,Senate,D,Abdul El-Sayed,0.86945
+MN-SEN,Senate,D,Peggy Flanagan,0.97115
+MS-SEN,Senate,R,Cindy Hyde-Smith,0.98005
+MT-SEN,Senate,R,Kurt Alme,0.9901
+NC-SEN,Senate,D,Roy Cooper,0.9351
+NE-SEN,Senate,R,Pete Ricketts,0.90715
+NH-SEN,Senate,D,Chris Pappas,0.9457
+NJ-SEN,Senate,D,Cory Booker,0.9975
+NM-SEN,Senate,D,Ben Ray Luján,0.99655
+OH-SEN,Senate,D,Sherrod Brown,0.61175
+OK-SEN,Senate,R,Kevin Hern,0.99875
+OR-SEN,Senate,D,Jeff Merkley,0.9987
+RI-SEN,Senate,D,Jack Reed,0.99875
+SC-SEN,Senate,R,Darline Graham,0.92765
+SD-SEN,Senate,R,Mike Rounds,0.9993
+TN-SEN,Senate,R,Bill Hagerty,0.9977
+TX-SEN,Senate,D,James Talarico,0.60515
+VA-SEN,Senate,D,Mark Warner,0.9971
+WV-SEN,Senate,R,Shelley Moore Capito,0.99945
+WY-SEN,Senate,R,Harriet Hageman,0.99985

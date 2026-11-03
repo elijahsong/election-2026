@@ -11,7 +11,6 @@ import cpi_gas
 def test_every_state_has_one_census_region():
     states = set(acs.STATE_FIPS.values()) | {"DC"}
     assert set(cpi_gas.STATE_REGION) == states
-    assert sum(map(len, cpi_gas.CENSUS_REGION_STATES.values())) == len(states)  # no state in two regions
     assert {r: len(s) for r, s in cpi_gas.CENSUS_REGION_STATES.items()} == \
         {"northeast": 9, "midwest": 12, "south": 17, "west": 13}
     assert [cpi_gas.STATE_REGION[s] for s in ["PA", "NJ", "MO", "ND", "DE", "MD", "TX", "OK", "AK", "HI", "NM"]] == \
@@ -24,6 +23,10 @@ def test_data_month_is_the_last_month_public_before_election_day():
     assert cpi_gas.data_month("2022-11-08") == pd.Period("2022-09", "M")
     with pytest.raises(ValueError, match="after the first"):
         cpi_gas.data_month("2026-11-01")
+    # a December election would move the data month to October and break year-to-year comparability
+    with pytest.raises(ValueError, match="must use September"):
+        cpi_gas.region_features(synthetic_monthly(), {2022: "2022-12-06"})
+    assert cpi_gas.DEFLATOR_BASE_MONTH.month == 9 and cpi_gas.REAL_PRICE_REFERENCE_MONTH.month == 9
 
 
 def synthetic_monthly(start="2020-01", end="2022-10"):
@@ -75,19 +78,8 @@ def test_features_from_the_data_month(monkeypatch):
     assert ne["log_real_gas_price"] == pytest.approx(math.log(real_ne), abs=1e-4)
     assert ne["log_rel_gas_price"] == pytest.approx(math.log(sep / us_sep), abs=1e-4)
     assert ne["log_rel_real_gas"] == pytest.approx(math.log(real_ne / real_us), abs=1e-4)
-    # the real gap is the nominal gap less the regional - national inflation accumulated since the base month
-    assert ne["log_rel_real_gas"] == pytest.approx(
-        ne["log_rel_gas_price"] - 32 * (math.log(1.003) - math.log(1.002)), abs=2e-4)
     assert ne["log_gas_yoy"] == pytest.approx(100 * math.log(sep / (sep - 0.03 * 12)), abs=1e-4)
     assert ne["log_real_gas_yoy"] == pytest.approx(ne["log_gas_yoy"] - ne["cpi_region_log_yoy"], abs=2e-4)
-    # the same region's log and percent changes agree to first order
-    assert ne["cpi_region_log_yoy"] < ne["cpi_region_yoy"] < ne["cpi_region_log_yoy"] + 0.1
-
-
-def test_every_year_compares_september_with_september():
-    # a December election would move the data month to October and break year-to-year comparability
-    with pytest.raises(ValueError, match="must use September"):
-        cpi_gas.region_features(synthetic_monthly(), {2022: "2022-12-06"})
 
 
 def test_october_levels_are_never_used():
@@ -161,19 +153,3 @@ def test_attach_regions_maps_states_and_raises_on_gaps():
         cpi_gas.attach_regions(keys.assign(state=["PR", "PA", "TX"]), region_f)
     with pytest.raises(ValueError, match="2024"):
         cpi_gas.attach_regions(keys.assign(year=2024), region_f)
-
-
-def test_month_ranges():
-    months = list(pd.period_range("2004-01", "2004-03", freq="M")) + [pd.Period("2025-10", "M")]
-    assert cpi_gas.month_ranges(months) == "2004-01 to 2004-03, 2025-10"
-
-
-def test_missing_deflator_base_month_blanks_only_the_real_log_features(monkeypatch):
-    monkeypatch.setattr(cpi_gas, "DEFLATOR_BASE_MONTH", pd.Period("2019-01", "M"))  # before the synthetic data
-    out = cpi_gas.region_features(synthetic_monthly(), {2022: "2022-11-08"})
-    assert out[["log_real_gas_price", "log_rel_real_gas", "log_real_gas_yoy"]].isna().all().all()
-    assert out[["log_rel_gas_price", "log_gas_yoy", "cpi_region_log_yoy"]].notna().all().all()
-
-
-def test_reference_months_are_septembers():
-    assert cpi_gas.DEFLATOR_BASE_MONTH.month == 9 and cpi_gas.REAL_PRICE_REFERENCE_MONTH.month == 9

@@ -46,7 +46,7 @@ Usage (a notebook in notebooks/house: put src/ and the repository root on sys.pa
 
 Each Stage1Result's predictions have one row per predicted district: year, state, district, train_start, train_end,
 prediction, actual, residual (actual - prediction; NA without an observed target, e.g. 2026), and prediction_<model>
-for each component. 2026 needs its generic-ballot margin (gen_margin_raw) in modeling.csv.
+for each component. 2026's gen_margin_raw is FiftyPlusOne's election-eve margin, transcribed by hand.
 """
 
 import math

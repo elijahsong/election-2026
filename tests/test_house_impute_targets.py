@@ -29,8 +29,6 @@ def test_jungle_and_rcv_targets_are_their_observed_first_round_party_totals():
     pd.testing.assert_series_equal(out.loc[(2014, "LA", 6)], targets.loc[(2014, "LA", 6)])
     pd.testing.assert_series_equal(out.loc[(2014, "TX", 1)], targets.loc[(2014, "TX", 1)])
 
+    # rerunning gives the same frame
+    pd.testing.assert_frame_equal(imp.impute_jungle_rcv(out.reset_index()), out.reset_index())
 
-def test_rerunning_gives_the_same_frame():
-    _, targets, _ = build(rows(2014, "LA", 5, [("A", "REPUBLICAN", 300), ("C", "DEMOCRAT", 400)]), everything=True)
-    once = imp.impute_jungle_rcv(targets.reset_index())
-    pd.testing.assert_frame_equal(imp.impute_jungle_rcv(once), once)

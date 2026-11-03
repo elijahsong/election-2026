@@ -15,7 +15,8 @@ python data-processing/cpi_gas.py                        # data/processed/cpi_ga
 python data-processing/unemployment.py                   # data/processed/unemployment_state.csv (shared with the House)
 python data-processing/senate/senate_acs.py              # data/interim/senate/acs_state.csv (Census API; CENSUS_API)
 python data-processing/senate/senate_features.py         # basic_f, acs_f, fec_f, prices_f, nat_political_f, modeling
-python data-processing/senate/senate_polls.py            # polls.csv (poll-level; needs only senate_incumbency.csv)
+python data-processing/senate/senate_polls.py            # polls_clean.csv, polls.csv [--as-of YYYY-MM-DD]
+python data-processing/senate/senate_ratings.py          # expert-ratings.csv
 ```
 
 Each script prints a report and refuses to write on a blocking problem. The column order, dtypes, keys and FIPS rules
@@ -46,7 +47,8 @@ of every output are defined in `senate_schema.py` and checked on write. A rerun 
 | `maine_sos_2024/` | Maine SOS 2024 U.S. Senate results by municipality | ME 2024 UOCAVA votes (in no county) |
 | `idaho_sos_2022/` | Idaho SOS 2022 general election canvass | ID 2022 Power County |
 | `arkansas_sos_2022/` | Arkansas SOS 2022 general election results file | AR 2022 Phillips County |
-| `All-US-Senate-polls-2006-2024/` | Jack Whitcomb's RealClearPolling Senate polls 2006–2024 (GitHub, commit 5aea8c5) | `polls.csv` |
+| `All-US-Senate-polls-2006-2024/` | Jack Whitcomb's RealClearPolling Senate polls 2006–2024 (GitHub, commit 5aea8c5) | `polls_clean.csv`, `polls.csv` |
+| `senate_ratings_historical/` | JHK Forecasts' forecast archive (`output.csv`, supplied; final pre-election ratings) | `expert-ratings.csv`, 2016–2024 |
 | `kansas_city_mo/` | Kansas City (MO) Election Board official results 2006–2022; OpenElections MO 2024 precincts | Kansas City's Senate votes, added to Jackson County |
 
 Inputs reused unchanged:
@@ -73,7 +75,8 @@ So Heideman is the county source, and its county sums are reconciled against the
 | `state_pvi.csv` | `year, state` |
 | `county_pvi.csv` | `year, state, county_id, county_fips` |
 | `nat_political_f.csv` | `year` |
-| `polls.csv` | `source_line` (one row per poll question; race `year, state, class`, plus `stage`) |
+| `polls.csv`, `expert-ratings.csv` | `year, state, class` (every race; 2006–2026 and 2016–2026), with `election_id` |
+| `polls_clean.csv` | `source_line` (one row per poll question; race `year, state, class`, plus `stage`) |
 
 - **Classes:** `class` and the race list come from `senate_incumbency.csv`. Its classes come from CAGE's next-up year,
   so a special gets the class of the seat it fills. A test checks that each regular race is its year's calendar class
@@ -313,9 +316,14 @@ and without the four `rel_state_*` columns. The only blanks are 2026's generic-b
 
 ## Polls (`senate_polls.py`)
 
-`polls.csv` has one row per poll question from RealClearPolling's general-election tables
-(`All-US-Senate-polls-2006-2024/2006_to_2024_senate_polls.csv`), keyed to its race `year, state, class`. It's
-poll-level only, with no race-level polling features yet. The columns are described in the script's docstring.
+Two files, both inputs for after Stage 1 (they aren't joined into `modeling.csv`):
+- `polls_clean.csv`: one row per poll question from RealClearPolling's general-election tables
+  (`All-US-Senate-polls-2006-2024/2006_to_2024_senate_polls.csv`), keyed to its race.
+- `polls.csv`: one row per race (all 382 in `senate_incumbency.csv`, 2006–2026), the polling average. Change the
+  average with `aggregate_polls`'s arguments (`window_days`, `publication_lag_days`, `as_of`); `polls_clean.csv` stays
+  as it is.
+
+The columns are described in the script's docstring.
 
 **Telling apart two races in one state-year.** The source has only `year` and `state`, and in two-race state-years
 its `overlapping_special_election` flag marks every row. But its rows keep RealClearPolling's page order, so each
@@ -347,7 +355,20 @@ MS 2008 and WY 2008 have no polls at all. The script stops if a two-race table h
   Lieberman 2006, Crist 2010 and Murkowski 2010 stay in `other_pct`, as in the targets.
 - **Repeated polls:** `rcp_table > 1` is mostly RCP's "with third-party candidate" version of a race. 134 of its
   137 rows repeat a first-table poll (same pollster and dates, margins within a few points), so they're marked
-  `in_earlier_table`. Counting both would count one poll twice.
+  duplicates. Counting both would count one poll twice.
+- **Duplicates (`is_duplicate`, `duplicate_of`, 135):** a poll is a duplicate of the first row (by RCP table, then
+  file order) that has either the same race, stage, pollster and field dates (the 134 above), or the same race,
+  stage, dates, sample size and D and R shares under another label: OH 2016 "Suffolk" and "Suffolk University".
+  There are no exact duplicate rows. Two other same-date, same-share pairs (FL 2018 Gravis and St. Pete Polls,
+  PA 2024 Muhlenberg, USA Today/Suffolk and Atlas Intel) have different samples, so they're separate polls.
+- **Pollsters:** `pollster` removes RCP's `*` markers, decodes HTML entities and merges spelling variants of one
+  firm (`POLLSTER_ALIASES`: Rasmussen / Rasmussen Reports, Gravis / Gravis Marketing, ...). Sponsor/firm labels
+  ("NBC News/Marist", "Marist") stay distinct, so `n_pollsters` counts labels. `pollster_partisan` is the label's
+  "(D)" or "(R)". `pollster_raw` is the source label.
+- **Candidates:** the source names none; its polls are RCP's tables for the eventual nominees. `dem_candidate`,
+  `gop_candidate` and `ind_candidate` are the race's nominees from `senate_fec.csv`. `matchup` says which shares
+  the poll reports (`dem-gop` 4,602, `dem-gop-other` 236, `gop-other` 31, ...).
+- **Margin:** `poll_margin_dem = 100 * (dem_pct - gop_pct) / (dem_pct + gop_pct)`, Democratic-positive.
 - **Blank margins (56 polls):** no D or no R share was polled. These are D-vs-D (CA 2016, 2018), no Democrat (AR
   2020), an independent as the main opponent (KS 2014, UT 2022, NE 2024) and one CT 2006 poll. AK 2022 (flag
   `alaska_four_candidates`) has two Republicans, Murkowski and Tshibaka, so the `rep` column is one of them and its
@@ -363,3 +384,86 @@ MS 2008 and WY 2008 have no polls at all. The script stops if a two-race table h
 **Coverage:** 259 of the 347 races of 2006–2024 have polls. 2006 has polls for only 13 states. 2010 stops at
 Oklahoma, so its OR, PA, SC, SD, UT, VT, WA, WI and WV races have none (PA, WA and WI were competitive). Most
 other gaps are safe seats. The script prints the full list.
+
+**The polling average (`polls.csv`)**
+- **Eligible polls:** general stage, not a duplicate, with a `poll_margin_dem`, and fieldwork that ended in the 30
+  days before Election Day (`window_start` = Election Day − 30 through the day before; Election Day excluded).
+- **Cutoff:** `cutoff_date` is the day before Election Day (`data/reference/election_dates.json`, as the generic
+  ballot's `gb_cutoff_date`). With `--as-of` it's that date if earlier, for a cycle in progress, and polls that ended
+  later aren't used.
+- **Availability:** the source has no release dates, so a poll counts as public `PUBLICATION_LAG_DAYS` (0) after its
+  fieldwork ended. A poll that ended the day before Election Day but came out on Election Day is still counted; raise
+  the lag to exclude such polls.
+- **Average:** the simple mean of the eligible `poll_margin_dem`, with no sample-size, voter-type or house-effect
+  weighting. `n_polls`, `n_pollsters` (distinct labels) and `latest_poll_date` describe the eligible polls.
+- **No polls:** `poll_margin_dem` blank (never 0), `n_polls = 0`, `poll_available = False`. Nothing is imputed.
+- **Exceptions in `quality_flags` (from the nominees, so known before the election):**
+  - `independent_vs_gop`: KS 2014, UT 2022, NE 2024 class 1, NE 2026. The polls have no Democratic share, so there's
+    no average.
+  - `no_dem_nominee`, `no_gop_nominee`, `independent_counted_as_dem`.
+- **Runoffs:** the average is for the November round. GA 2020 class 2's runoff polls are in `polls_clean.csv` only.
+  The MS 2018 special's only eligible poll is a Hyde-Smith–Espy head-to-head.
+
+| Year | Races | With a 30-day average | Mean polls per averaged race |
+|---|---|---|---|
+| 2006 | 33 | 11 | 12.5 |
+| 2008 | 35 | 22 | 7.0 |
+| 2010 | 37 | 25 | 7.4 |
+| 2012 | 33 | 27 | 6.7 |
+| 2014 | 36 | 33 | 6.0 |
+| 2016 | 34 | 22 | 7.3 |
+| 2018 | 35 | 27 | 5.1 |
+| 2020 | 35 | 20 | 7.2 |
+| 2022 | 35 | 23 | 6.4 |
+| 2024 | 34 | 17 | 10.5 |
+| 2026 | 35 | 11 (FiftyPlusOne) | — |
+
+227 of the 347 races of 2006–2024 have an average, and the script prints the other 120. Most are safe seats, or
+races with polls only before the window. The rest come from the coverage gaps above. 2026 has no RCP polls, since that source ends
+in 2024.
+
+**2026: FiftyPlusOne averages (`add_published_averages`).** 11 races get the election-eve FiftyPlusOne Senate
+polling average, transcribed by hand on 2026-11-02 into `data/reference/polls_2026_fiftyplusone.csv`: AK, FL (class 3
+special), GA, IA, KS, ME, MI, NC, NH, OH (class 3 special) and TX. No other race, NE included, had one.
+- `poll_margin_dem` is computed from the D and R shares as above, `poll_source` names the file, and `n_polls`,
+  `n_pollsters` and `latest_poll_date` are blank (FiftyPlusOne's poll counts aren't known).
+- A year never mixes the two sources.
+- **Not the same method as 2006–2024:** FiftyPlusOne's average isn't a simple 30-day mean of RCP polls, so its errors
+  may differ from the historical averages that any blend is calibrated on.
+
+## Expert ratings (`senate_ratings.py`)
+
+`expert-ratings.csv` has one row per race 2016–2026 (208). Each row has the Sabato's Crystal Ball, Cook Political
+Report and Inside Elections ratings, their scores and a consensus. It's a post-Stage 1 input, not joined into
+`modeling.csv`.
+
+- **Sources:**
+  - 2016–2024: the JHK Forecasts archive (`forecast` sabato, cook, inside), the final pre-election ratings. Only
+    `forecast, year, office, s_id, probwin, rating` are read, so the archive's outcome columns (`probwin_outcome`,
+    `correct`, `brier`, ...) never reach the file.
+  - 2026: entered by hand in `data/reference/ratings_2026.csv`.
+- **Race keys:** JHK's `s_id` is the state, or `<state>-special` and `NES` (NE 2024) for specials. These are matched
+  to the state-year's regular or special race in `senate_incumbency.csv`, so the two races of MN and MS 2018,
+  AZ/GA 2020, OK 2022 and NE 2024 stay separate. The key is `class`, as in every Senate file, with `election_id`
+  (`<year>_<state>_<class>`) and `special`.
+- **Scores:** `<provider>_prob_dem = 1 − RATING_GOP_SCORE[rating]`, since JHK's `probwin` is the Republican's score.
+  The script checks that every archive `probwin` equals the score of its rating.
+
+  | Rating | Solid D | Likely D | Lean D | Tilt D | Tossup | Tilt R | Lean R | Likely R | Solid R |
+  |---|---|---|---|---|---|---|---|---|---|
+  | GOP score | 0.01 | 0.10 | 0.25 | 0.40 | 0.50 | 0.60 | 0.75 | 0.90 | 0.99 |
+  | `prob_dem` | 0.99 | 0.90 | 0.75 | 0.60 | 0.50 | 0.40 | 0.25 | 0.10 | 0.01 |
+
+  Inside Elections' Tilt ratings are kept. **These are heuristic encodings of ordinal ratings, not calibrated win
+  probabilities, and not vote margins.**
+- **Consensus:** `expert_consensus_dem = 0.40 sabato + 0.30 cook + 0.30 ie`. If a provider were missing, its rating
+  and score would stay blank, the remaining weights would be renormalized, `coverage_complete` would be False and
+  `missing_<provider>` flagged. Every race 2016–2026 has all three ratings, so none is. The weights only combine the
+  three providers; they aren't weights against polls or fundamentals.
+- **`as_of_date`** is blank: neither source dates its ratings.
+- **Exceptions (`quality_flags`, as in `polls.csv`):** in these races `prob_dem` is the probability that the
+  Republican loses, which isn't a Democratic win:
+  - `independent_vs_gop`: UT 2022 (McMullin), NE 2024 class 1 and NE 2026 (Osborn).
+  - `no_dem_nominee`: AR 2020, and ID and SD 2026, whose opponents are independents.
+
+  Also: `independent_counted_as_dem` (King, Sanders) and `no_gop_nominee` (CA 2016, 2018).

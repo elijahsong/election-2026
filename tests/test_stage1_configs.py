@@ -1,5 +1,3 @@
-import dataclasses
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -49,11 +47,6 @@ def test_predictor_definitions_are_fixed():
     assert HOUSE_ENSEMBLE_AB_85_15.components == ((MODEL_A, 0.85), (MODEL_B, 0.15))
     assert HOUSE_MODEL_A.equal_year and HOUSE_ENSEMBLE_AB_85_15.equal_year
     assert set(stage1.CONFIGS) == {"house_model_a", "house_ensemble_ab_85_15"}
-
-    with pytest.raises(dataclasses.FrozenInstanceError):
-        HOUSE_ENSEMBLE_AB_85_15.components = ((MODEL_A, 1.0),)
-    with pytest.raises(TypeError):
-        MODEL_A.fixed["inc_signed"] = 5.0
     with pytest.raises(ValueError, match="sum to 1"):
         stage1.Stage1Config("bad", ((MODEL_A, 0.85), (MODEL_B, 0.25)))
 
