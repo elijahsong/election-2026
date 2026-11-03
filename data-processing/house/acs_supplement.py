@@ -1,4 +1,6 @@
-"""Add national- and state-relative college, income, and unemployment columns to acs.csv, written to a new file."""
+"""Add national- and state-relative college, income, unemployment, and housing-burden columns, and the state-relative
+Hispanic share, to acs.csv, written to a new file. Each comparison value is the nation's or the state's own ACS estimate
+from the districts' vintage (fetch_reference), not an average of its districts."""
 
 import argparse
 from pathlib import Path
@@ -9,11 +11,11 @@ from tqdm import tqdm
 
 import acs
 
-REFERENCE_FIELDS = ["college", "median_income", "unemployment", "housing_burden"]
+REFERENCE_FIELDS = ["college", "median_income", "unemployment", "housing_burden", "hispanic"]
 SUPPLEMENT_COLUMNS = [
     "rel_college", "log_rel_income", "rel_state_college",
     "log_rel_state_income", "rel_unemployment", "rel_state_unemployment",
-    "rel_housing_burden", "rel_state_housing_burden",
+    "rel_housing_burden", "rel_state_housing_burden", "rel_state_hispanic",
 ]
 NATIONAL_GEO = {"for": "us:1"}
 STATE_GEO = {"for": "state:*"}
@@ -45,7 +47,7 @@ def read_acs(path: str | Path) -> pd.DataFrame:
     if df.duplicated(["year", "state", "district"]).any():
         raise ValueError(f"{path} has duplicate (year, state, district) keys")
     if df[REFERENCE_FIELDS].isna().any().any() or (df["median_income"] <= 0).any():
-        raise ValueError(f"{path} has missing or non-positive college, income, or unemployment values")
+        raise ValueError(f"{path} has missing {REFERENCE_FIELDS} values or non-positive income")
     for year, vintages in df.groupby("year")["acs_vintage"]:
         # national and state references are fetched from this same vintage, so it must be the mapped one
         allowed = allowed_vintages(int(year))
@@ -54,10 +56,11 @@ def read_acs(path: str | Path) -> pd.DataFrame:
     return df
 
 
-def fetch_reference(year: int, key: str) -> tuple[pd.Series, pd.DataFrame]:
-    """National values and per-state values (indexed by USPS code) from the same ACS vintage as the districts."""
-    variables = acs.field_variables(year, REFERENCE_FIELDS)
-    specs = {field: acs.ACS_FIELDS[year][field] for field in REFERENCE_FIELDS}
+def fetch_reference(year: int, key: str, fields: list[str] = REFERENCE_FIELDS) -> tuple[pd.Series, pd.DataFrame]:
+    """National values and per-state values (indexed by USPS code) of `fields` from the same ACS vintage as the
+    districts. The Senate pipeline (senate_acs.py) fetches every acs.py field this way."""
+    variables = acs.field_variables(year, fields)
+    specs = {field: acs.ACS_FIELDS[year][field] for field in fields}
     acs.verify_variables(year, variables)
 
     def fields(raw: pd.DataFrame, ids: pd.Series) -> pd.DataFrame:
@@ -87,7 +90,7 @@ def _log_ratio(x: pd.Series, ref: pd.Series | float) -> pd.Series:
 
 
 def add_relative_columns(df: pd.DataFrame, national: pd.Series, states: pd.DataFrame) -> pd.DataFrame:
-    """Append the six relative columns to one year's district rows."""
+    """Append the SUPPLEMENT_COLUMNS to one year's district rows."""
     state = states.reindex(df["state"]).set_axis(df.index)
     if state.isna().any().any():
         raise ValueError(f"No state reference for {sorted(df.loc[state.isna().any(axis=1), 'state'].unique())}")
@@ -100,6 +103,7 @@ def add_relative_columns(df: pd.DataFrame, national: pd.Series, states: pd.DataF
     out["rel_state_unemployment"] = df["unemployment"] - state["unemployment"]
     out["rel_housing_burden"] = df["housing_burden"] - national["housing_burden"]
     out["rel_state_housing_burden"] = df["housing_burden"] - state["housing_burden"]
+    out["rel_state_hispanic"] = df["hispanic"] - state["hispanic"]
     # percentage-point gaps keep the inputs' 2 decimals; log ratios keep 4 (0.01% of income); + 0.0 turns -0.0 into 0.0
     out[SUPPLEMENT_COLUMNS] = out[SUPPLEMENT_COLUMNS].round({c: 4 if c.startswith("log_") else 2 for c in SUPPLEMENT_COLUMNS}) + 0.0
     return out

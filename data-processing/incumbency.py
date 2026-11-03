@@ -83,7 +83,8 @@ SENATE_OVERRIDES = {
                       "R incumbent who lost the primary and won as a write-in; coded by her original party"),
     **{(year, "VT", 1): (1, 1, "SANDERS, BERNARD (BERNIE)", "independent who caucuses with Democrats")
        for year in (2012, 2018, 2024)},
-    (2024, "ME", 1): (1, 1, "KING, ANGUS S., JR.", "independent who caucuses with Democrats"),
+    **{(year, "ME", 1): (1, 1, "KING, ANGUS S., JR.", "independent who caucuses with Democrats")
+       for year in (2018, 2024)},
     # appointed incumbents are open (as CAGE's inc = 3 is for 2006-2024); senate_2026.csv doesn't mark appointments
     (2026, "OH", 3): (0, 0, "", "special for Vance's seat; the appointed incumbent (Husted) is coded as open"),
     (2026, "FL", 3): (0, 0, "", "special for Rubio's seat; the appointed incumbent (Moody) is coded as open"),

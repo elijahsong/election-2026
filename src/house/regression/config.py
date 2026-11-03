@@ -11,7 +11,7 @@ predictors (modeling.csv) and targets (targets.csv) stay separate until backtest
 from .schema import COLUMNS, TRANCHES
 
 # Any predictor column of data/processed/house/modeling.csv can be listed. schema.TRANCHES lists each tranche's
-# predictors: basic_f, acs_f, fec_f, and nat_political_f (e.g. TRANCHES["basic_f"] + ["college"]).
+# predictors: basic_f, acs_f, fec_f, prices_f, and nat_political_f (e.g. TRANCHES["basic_f"] + ["college"]).
 FEATURE_SETS = {
     "classic": TRANCHES["basic_f"],  # gen_margin_raw, partisan_lean, inc_signed
     "enhanced": TRANCHES["basic_f"] + ["college", "hispanic"],
@@ -21,11 +21,29 @@ FEATURE_SETS = {
 # "use_holdout": True.
 HOLDOUT_YEARS = [2024]
 
+# Evaluation only (training is unaffected): the race types whose observed (is_imputed == False) target counts as a
+# real D-R contest. schema.RACE_TYPES lists every type; data-processing/house/README.md documents them.
+EVAL_RACE_TYPES = ["dr", "dr_multi", "dr_jungle", "dr_rcv", "dr_writein"]
+
+# Competitive subsets scored alongside all valid targets: name -> (column, threshold). A valid row is in the subset
+# when abs(column) <= threshold, in points; a null value leaves it out (counted as <name>_undetermined in coverage).
+# column is a column name or arithmetic of them (e.g. "partisan_lean + gb_margin_2p_norm"); each name is looked up in
+# the targets (targets.csv), then the predictors (modeling.csv).
+# COMPETITIVE_THRESHOLD is any non-negative int or float (e.g. 5, 7, or 7.5); give a subset its own number to differ.
+COMPETITIVE_THRESHOLD = 10
+COMPETITIVE_SUBSETS = {
+    # expected margin under uniform swing: two-party lean relative to the nation (2 x cook_pvi) plus the eve-of-election
+    # two-party generic-ballot margin, both known before the election
+    "competitive_ex_ante": ("partisan_lean + gb_margin_2p_norm", COMPETITIVE_THRESHOLD),
+    "competitive_ex_post": ("margin_2p_norm", COMPETITIVE_THRESHOLD),  # observed two-party margin
+}
+
 # ANSI color codes for describe_config, printed bold: model_type by MODEL_COLORS and tranche names by TRANCHE_COLORS
 # (default color when missing), and the year lists by YEAR_COLORS
 MODEL_COLORS = {"ols": "36"}  # cyan
 YEAR_COLORS = {"train_years": "32", "eval_years": "33"}  # green, yellow
-TRANCHE_COLORS = {"basic_f": "35", "acs_f": "34", "fec_f": "32", "nat_political_f": "31"}  # magenta, blue, green, red
+TRANCHE_COLORS = {"basic_f": "35", "acs_f": "34", "fec_f": "32", "prices_f": "33",
+                  "nat_political_f": "31"}  # magenta, blue, green, yellow, red
 
 CLASSIC_OLS = {
     "model_type": "ols",  # a models.MODELS key

@@ -1,0 +1,190 @@
+year,state,class,contest,stage,candidate,parties,party_group,is_candidate,is_writein,votes,source
+2006,CT,1,first_round,general,JOSEPH I. LIEBERMAN,CONNECTICUT FOR LIEBERMAN,3P,True,False,564095,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,CT,1,first_round,general,NED LAMONT,DEMOCRAT,D,True,False,450844,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,CT,1,first_round,general,ALAN SCHLESINGER,REPUBLICAN,R,True,False,109198,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,CT,1,first_round,general,RALPH A. FERRUCCI,GREEN,3P,True,False,5922,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,CT,1,first_round,general,TIMOTHY A. KNIBBS,CONCERNED CITIZENS,3P,True,False,4638,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,CT,1,first_round,general,WRITEIN,,3P,False,True,80,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,IN,1,first_round,general,RICHARD G. LUGAR,REPUBLICAN,R,True,False,1171553,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,IN,1,first_round,general,STEVE OSBORN,LIBERTARIAN,3P,True,False,168820,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2006,IN,1,first_round,general,WRITEIN,,3P,False,True,738,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,AR,2,first_round,general,MARK L. PRYOR,DEMOCRAT,D,True,False,804678,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,AR,2,first_round,general,REBEKAH KENNEDY,GREEN,3P,True,False,207076,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,GA,2,first_round,general,SAXBY CHAMBLISS,REPUBLICAN,R,True,False,1867097,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,GA,2,first_round,general,JIM MARTIN,DEMOCRAT,D,True,False,1757393,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,GA,2,first_round,general,ALLEN BUCKLEY,LIBERTARIAN,3P,True,False,127923,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,GA,2,first_round,general,WRITEIN,,3P,False,True,72,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,GA,2,runoff,runoff,SAXBY CHAMBLISS,REPUBLICAN,R,True,False,1228033,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,GA,2,runoff,runoff,JIM MARTIN,DEMOCRAT,D,True,False,909923,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,MS,1,first_round,general,ROGER F. WICKER,REPUBLICAN,R,True,False,683409,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2008,MS,1,first_round,general,RONNIE MUSGROVE,DEMOCRAT,D,True,False,560064,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,LISA MURKOWSKI,,3P,True,True,101091,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,JOE MILLER,REPUBLICAN,R,True,False,90839,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,SCOTT T. MCADAMS,DEMOCRAT,D,True,False,60045,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,"FREDRICK ""DAVID"" HAASE",LIBERTARIAN,3P,True,False,1459,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,TIM CARTER,NONAFFILIATED,3P,True,False,927,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,OTHER,,3P,False,False,602,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,TED GIANOUTSOS,NONAFFILIATED,3P,True,False,458,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,AK,3,first_round,general,WRITEIN,,3P,False,True,82,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,MARCO RUBIO,REPUBLICAN,R,True,False,2645743,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,CHARLIE CRIST,NO PARTY AFFILIATION,3P,True,False,1607549,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,KENDRICK B. MEEK,DEMOCRAT,D,True,False,1092936,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,ALEXANDER ANDREW SNITKER,LIBERTARIAN,3P,True,False,24850,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,SUE ASKELAND,NO PARTY AFFILIATION,3P,True,False,15340,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,RICK TYLER,NO PARTY AFFILIATION,3P,True,False,7397,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,BERNIE DECASTRO,CONSTITUTION PARTY OF FLORIDA,3P,True,False,4792,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,LEWIS JEROME ARMSTRONG,NO PARTY AFFILIATION,3P,True,False,4443,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,BOBBIE BEAN,NO PARTY AFFILIATION,3P,True,False,4301,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,BRUCE RAY RIGGS,NO PARTY AFFILIATION,3P,True,False,3647,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,WRITEIN,,3P,False,True,90,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2010,FL,3,first_round,general,MA,,3P,True,True,18,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2014,KS,2,first_round,general,PAT ROBERTS,REPUBLICAN,R,True,False,460350,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2014,KS,2,first_round,general,GREG ORMAN,INDEPENDENT,3P,True,False,368372,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2014,KS,2,first_round,general,RANDALL BATSON,LIBERTARIAN,3P,True,False,37469,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2014,LA,2,first_round,general,MARY L. LANDRIEU,DEMOCRAT,D,True,False,619402,Louisiana SOS official results (2014-11-04)
+2014,LA,2,first_round,general,"""BILL"" CASSIDY",REPUBLICAN,R,True,False,603048,Louisiana SOS official results (2014-11-04)
+2014,LA,2,first_round,general,"""ROB"" MANESS",REPUBLICAN,R,True,False,202556,Louisiana SOS official results (2014-11-04)
+2014,LA,2,first_round,general,THOMAS CLEMENTS,REPUBLICAN,R,True,False,14173,Louisiana SOS official results (2014-11-04)
+2014,LA,2,first_round,general,BRANNON LEE MCMORRIS,LIBERTARIAN,3P,True,False,13034,Louisiana SOS official results (2014-11-04)
+2014,LA,2,first_round,general,WAYNE ABLES,DEMOCRAT,D,True,False,11323,Louisiana SOS official results (2014-11-04)
+2014,LA,2,first_round,general,"WILLIAM P. WAYMIRE, JR.",DEMOCRAT,D,True,False,4673,Louisiana SOS official results (2014-11-04)
+2014,LA,2,first_round,general,VALLIAN SENEGAL,DEMOCRAT,D,True,False,3835,Louisiana SOS official results (2014-11-04)
+2014,LA,2,runoff,runoff,"""BILL"" CASSIDY",REPUBLICAN,R,True,False,712379,Louisiana SOS official results (2014-12-06)
+2014,LA,2,runoff,runoff,MARY L. LANDRIEU,DEMOCRAT,D,True,False,561210,Louisiana SOS official results (2014-12-06)
+2016,AK,3,first_round,general,LISA MURKOWSKI,REPUBLICAN,R,True,False,138149,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2016,AK,3,first_round,general,JOE MILLER,LIBERTARIAN,3P,True,False,90825,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2016,AK,3,first_round,general,MARGARET STOCK,INDEPENDENT,3P,True,False,41194,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2016,AK,3,first_round,general,RAY METCALFE,DEMOCRAT,D,True,False,36200,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2016,AK,3,first_round,general,BRECK A. CRAIG,INDEPENDENT,3P,True,False,2609,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2016,AK,3,first_round,general,TED GIANOUTSOS,INDEPENDENT,3P,True,False,1758,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2016,AK,3,first_round,general,WRITEIN,,3P,False,True,706,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2016,LA,3,first_round,general,JOHN KENNEDY,REPUBLICAN,R,True,False,482591,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,FOSTER CAMPBELL,DEMOCRAT,D,True,False,337833,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,CHARLES BOUSTANY,REPUBLICAN,R,True,False,298008,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,CAROLINE FAYARD,DEMOCRAT,D,True,False,240917,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,JOHN FLEMING,REPUBLICAN,R,True,False,204026,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,"""ROB"" MANESS",REPUBLICAN,R,True,False,90856,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,DAVID DUKE,REPUBLICAN,R,True,False,58606,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,DERRICK EDWARDS,DEMOCRAT,D,True,False,51774,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,GARY LANDRIEU,DEMOCRAT,D,True,False,45587,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,"DONALD ""CRAWDADDY"" CRAWFORD",REPUBLICAN,R,True,False,25523,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,"""JOSEPH"" CAO",REPUBLICAN,R,True,False,21019,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,BERYL BILLIOT,NOPTY,3P,True,False,19352,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,THOMAS P. CLEMENTS,LIBERTARIAN,3P,True,False,11370,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,TROY HEBERT,NOPTY,3P,True,False,9503,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,JOSHUA PELLERIN,DEMOCRAT,D,True,False,7395,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,PETER WILLIAMS,DEMOCRAT,D,True,False,6855,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,"MV ""VINNY"" MENDOZA",DEMOCRAT,D,True,False,4927,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,KAITLIN MARONE,NOPTY,3P,True,False,4108,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,LE ROY GILLAM,LIBERTARIAN,3P,True,False,4067,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,CHARLES MARSALA,REPUBLICAN,R,True,False,3684,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,ABHAY PATEL,REPUBLICAN,R,True,False,1576,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,ARDEN WELLS,NOPTY,3P,True,False,1483,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,"WILLIAM ROBERT ""BOB"" LANG, JR.",OTHER,3P,True,False,1424,Louisiana SOS official results (2016-11-08)
+2016,LA,3,first_round,general,"GREGORY TAYLOR, JR.",OTHER,3P,True,False,1151,Louisiana SOS official results (2016-11-08)
+2016,LA,3,runoff,runoff,JOHN KENNEDY,REPUBLICAN,R,True,False,536191,Louisiana SOS official results (2016-12-10)
+2016,LA,3,runoff,runoff,FOSTER CAMPBELL,DEMOCRAT,D,True,False,347816,Louisiana SOS official results (2016-12-10)
+2018,ME,1,first_round,general,"ANGUS S. KING, JR.",INDEPENDENT,D,True,False,344575,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2018,ME,1,first_round,general,ERIC L. BRAKEY,REPUBLICAN,R,True,False,223502,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2018,ME,1,first_round,general,ZAK RINGELSTEIN,DEMOCRAT,3P,True,False,66268,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2018,ME,1,first_round,general,OTHERS,,3P,False,False,64,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2018,MS,2,first_round,general,CINDY HYDE-SMITH,REPUBLICAN,R,True,False,389995,FEC Federal Elections 2018 (official results)
+2018,MS,2,first_round,general,MIKE ESPY,DEMOCRAT,D,True,False,386742,FEC Federal Elections 2018 (official results)
+2018,MS,2,first_round,general,CHRIS MCDANIEL,REPUBLICAN,R,True,False,154878,FEC Federal Elections 2018 (official results)
+2018,MS,2,first_round,general,TOBEY BERNARD BARTEE,DEMOCRAT,D,True,False,13852,FEC Federal Elections 2018 (official results)
+2018,MS,2,runoff,runoff,CINDY HYDE-SMITH,REPUBLICAN,R,True,False,486769,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2018,MS,2,runoff,runoff,MIKE ESPY,DEMOCRAT,D,True,False,420819,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,AR,2,first_round,general,TOM COTTON,REPUBLICAN,R,True,False,793871,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,AR,2,first_round,general,RICKY DALE HARRINGTON JR.,LIBERTARIAN,3P,True,False,399390,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,2,first_round,general,DAVID A. PERDUE,REPUBLICAN,R,True,False,2462617,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,2,first_round,general,JON OSSOFF,DEMOCRAT,D,True,False,2374519,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,2,first_round,general,SHANE HAZEL,LIBERTARIAN,3P,True,False,115039,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,2,runoff,runoff,JON OSSOFF,DEMOCRAT,D,True,False,2269262,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,2,runoff,runoff,DAVID A. PERDUE,REPUBLICAN,R,True,False,2213979,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,RAPHAEL WARNOCK,DEMOCRAT,D,True,False,1617035,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,KELLY LOEFFLER,REPUBLICAN,R,True,False,1273214,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,DOUG COLLINS,REPUBLICAN,R,True,False,980454,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,DEBORAH JACKSON,DEMOCRAT,D,True,False,324118,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,MATT LIEBERMAN,DEMOCRAT,D,True,False,136021,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,TAMARA JOHNSON-SHEALEY,DEMOCRAT,D,True,False,106767,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,JAMESIA JAMES,DEMOCRAT,D,True,False,94406,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,DERRICK E. GRAYSON,REPUBLICAN,R,True,False,51592,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,JOY FELICIA SLADE,DEMOCRAT,D,True,False,44945,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,ANNETTE DAVIS JACKSON,REPUBLICAN,R,True,False,44335,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,KANDISS TAYLOR,REPUBLICAN,R,True,False,40349,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,A. WAYNE JOHNSON,REPUBLICAN,R,True,False,36176,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,BRIAN SLOWINSKI,LIBERTARIAN,3P,True,False,35431,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,RICHARD DIEN WINFIELD,DEMOCRAT,D,True,False,28687,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,ED TARVER,DEMOCRAT,D,True,False,26333,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,ALLEN BUCKLEY,INDEPENDENT,3P,True,False,17954,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,JOHN FORTUIN,GREEN,3P,True,False,15293,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,AL BARTELL,INDEPENDENT,3P,True,False,14640,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,VALENCIA STOVALL,INDEPENDENT,3P,True,False,13318,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,first_round,general,MICHAEL TODD GREENE,INDEPENDENT,3P,True,False,13293,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,runoff,runoff,RAPHAEL WARNOCK,DEMOCRAT,D,True,False,2288446,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,GA,3,runoff,runoff,KELLY LOEFFLER,REPUBLICAN,R,True,False,2194848,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,LA,2,first_round,general,"""BILL"" CASSIDY",REPUBLICAN,R,True,False,1228908,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,ADRIAN PERKINS,DEMOCRAT,D,True,False,394049,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,"DERRICK ""CHAMP"" EDWARDS",DEMOCRAT,D,True,False,229814,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,ANTOINE PIERCE,DEMOCRAT,D,True,False,55710,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,DUSTIN MURPHY,REPUBLICAN,R,True,False,38383,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,DAVID DREW KNIGHT,DEMOCRAT,D,True,False,36962,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,BERYL BILLIOT,NOPTY,3P,True,False,17362,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,JOHN PAUL BOURGEOIS,NOPTY,3P,True,False,16518,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,PETER WENSTRUP,DEMOCRAT,D,True,False,14454,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,AARON C. SIGLER,LIBERTARIAN,3P,True,False,11321,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,"M.V. ""VINNY"" MENDOZA",INDEPENDENT,3P,True,False,7811,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,MELINDA MARY PRICE,OTHER,3P,True,False,7680,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,JAMAR MONTGOMERY,NOPTY,3P,True,False,5804,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,RENO JEAN DARET III,NOPTY,3P,True,False,3954,Louisiana SOS official results (2020-11-03)
+2020,LA,2,first_round,general,"""XAN"" JOHN",OTHER,3P,True,False,2813,Louisiana SOS official results (2020-11-03)
+2020,ME,2,first_round,general,SUSAN MARGARET COLLINS,REPUBLICAN,R,True,False,417645,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,ME,2,first_round,general,SARA I. GIDEON,DEMOCRAT,D,True,False,347223,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,ME,2,first_round,general,LISA SAVAGE,INDEPENDENT,3P,True,False,40579,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,ME,2,first_round,general,MAX PATRICK LINN,INDEPENDENT,3P,True,False,13508,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,ME,2,first_round,general,BLANK VOTES,,nonvote,False,False,9122,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2020,ME,2,first_round,general,WRITEIN,,3P,False,True,228,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20210114)"
+2022,AK,3,first_round,general,"MURKOWSKI, LISA",REPUBLICAN,R,True,False,114118,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,AK,3,first_round,general,"TSHIBAKA, KELLY C.",REPUBLICAN,R,True,False,112101,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,AK,3,first_round,general,"CHESBRO, PATRICIA R.",DEMOCRAT,D,True,False,28233,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,AK,3,first_round,general,"KELLEY, BUZZ A.",REPUBLICAN,R,True,False,8575,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,AK,3,first_round,general,OVERVOTES,,nonvote,False,False,499,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,CA,3,first_round,general,ALEX PADILLA,DEMOCRAT,D,True,False,6621621,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,CA,3,first_round,general,MARK P. MEUSER,REPUBLICAN,R,True,False,4222029,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,CA,3,special,general,ALEX PADILLA,DEMOCRAT,D,True,False,6559308,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,CA,3,special,general,MARK P. MEUSER,REPUBLICAN,R,True,False,4212450,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,GA,3,first_round,general,RAPHAEL WARNOCK,DEMOCRAT,D,True,False,1946117,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,GA,3,first_round,general,HERSCHEL JUNIOR WALKER,REPUBLICAN,R,True,False,1908442,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,GA,3,first_round,general,CHASE OLIVER,LIBERTARIAN,3P,True,False,81365,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,GA,3,runoff,runoff,RAPHAEL WARNOCK,DEMOCRAT,D,True,False,1820633,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,GA,3,runoff,runoff,HERSCHEL JUNIOR WALKER,REPUBLICAN,R,True,False,1721244,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,JOHN KENNEDY,REPUBLICAN,R,True,False,851568,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,"GARY CHAMBERS, JR.",DEMOCRAT,D,True,False,246933,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,"\LUKE\"" MIXON""",DEMOCRAT,D,True,False,182887,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,SYRITA STEIB,DEMOCRAT,D,True,False,31568,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,DEVIN LANCE GRAHAM,REPUBLICAN,R,True,False,25275,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,"MV \VINNY\"" MENDOZA""",DEMOCRAT,D,True,False,11910,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,BERYL A. BILLIOT,NON PARTISAN,3P,True,False,9378,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,SALVADOR P. RODRIGUEZ,DEMOCRAT,D,True,False,7767,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,BRADLEY MCMORRIS,INDEPENDENT,3P,True,False,5388,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,AARON C. SIGLER,LIBERTARIAN,3P,True,False,4865,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,"\XAN\"" JOHN""",OTHER,3P,True,False,2753,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,W. THOMAS LA FONTAINE OLSON,NON PARTISAN,3P,True,False,1676,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,LA,3,first_round,general,THOMAS WENN,OTHER,3P,True,False,1322,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,UT,3,first_round,general,MIKE LEE,REPUBLICAN,R,True,False,571974,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,UT,3,first_round,general,EVAN MCMULLIN,INDEPENDENT,3P,True,False,459958,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,UT,3,first_round,general,JAMES ARTHUR HANSEN,LIBERTARIAN,3P,True,False,31784,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,UT,3,first_round,general,TOMMY WILLIAMS,INDEPENDENT,3P,True,False,12103,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2022,UT,3,first_round,general,OTHER,OTHER,3P,True,False,242,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20230920)"
+2024,CA,1,first_round,general,ADAM B. SCHIFF,DEMOCRAT,D,True,False,9036252,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,CA,1,first_round,general,STEVE GARVEY,REPUBLICAN,R,True,False,6312594,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,CA,1,special,general,ADAM B. SCHIFF,DEMOCRAT,D,True,False,8837051,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20241212)"
+2024,CA,1,special,general,STEVE GARVEY,REPUBLICAN,R,True,False,6204637,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 20241212)"
+2024,ME,1,first_round,general,ANGUS S. KING JR.,INDEPENDENT,D,True,False,427570,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,ME,1,first_round,general,DEMI KOUZOUNAS,REPUBLICAN,R,True,False,284434,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,ME,1,first_round,general,DAVID ALLEN COSTELLO,DEMOCRATIC,3P,True,False,88875,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,ME,1,first_round,general,UNDERVOTES,,nonvote,False,False,21375,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,ME,1,first_round,general,JASON S. CHERRY,INDEPENDENT,3P,True,False,20193,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,NE,1,first_round,general,DEB FISCHER,REPUBLICAN,R,True,False,499124,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,NE,1,first_round,general,DAN OSBORN,BY PETITION,3P,True,False,436493,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"
+2024,NE,1,first_round,general,OTHER,OTHER,3P,True,False,2719,"MEDSL U.S. Senate statewide 1976-2024 (doi:10.7910/DVN/PEJ5QU, version 11/20/25)"

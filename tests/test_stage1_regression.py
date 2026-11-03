@@ -162,7 +162,7 @@ def test_holdout_years_need_explicit_opt_in():
 
 
 def test_metrics():
-    actual, predicted = [0, 2, 4], [1, 1, 7]  # errors +1, -1, +3
+    actual, predicted = [0, 2, 4], [1, 1, 7]  # residuals (actual - predicted) -1, +1, -3
     assert metrics.mae(actual, predicted) == pytest.approx(5 / 3)
     assert metrics.rmse(actual, predicted) == pytest.approx(math.sqrt(11 / 3))
-    assert metrics.bias(actual, predicted) == pytest.approx(1)
+    assert metrics.bias(actual, predicted) == pytest.approx(-1)  # Republicans outperformed the forecast

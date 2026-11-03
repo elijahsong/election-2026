@@ -40,7 +40,7 @@ On every run, each variable's label and concept are checked against that vintage
 python data-processing/house/acs_supplement.py  # data/interim/house/acs.csv -> data/interim/house/acs_supplement.csv
 ```
 
-This writes every `acs.csv` column plus eight comparison columns. `acs.csv` itself is never modified, so `acs.py` can keep updating it.
+This writes every `acs.csv` column plus nine comparison columns. `acs.csv` itself is never modified, so `acs.py` can keep updating it.
 
 | Column | Definition |
 |---|---|
@@ -48,6 +48,7 @@ This writes every `acs.csv` column plus eight comparison columns. `acs.csv` itse
 | `log_rel_income`, `log_rel_state_income` | log(district median income ÷ national / state median income) |
 | `rel_unemployment`, `rel_state_unemployment` | district − national / state unemployment rate (percentage points) |
 | `rel_housing_burden`, `rel_state_housing_burden` | district − national / state housing burden (percentage points) |
+| `rel_state_hispanic` | district − state Hispanic share (percentage points); the state's own ACS estimate, as for every state column |
 
 - **Where the comparison values come from:** they're fetched from the API (`us:1`, `state:*`) using the same vintage, variables and formulas as the districts. Averaging districts wouldn't work: an average of district medians isn't a national median, and the rates would need weighting by population.
 - **Rounding:** the comparison values are rounded like the district values, so at-large districts come out as exactly 0.
@@ -101,7 +102,7 @@ These errors are well below the ACS's own margins of error for districts. The li
 # House modeling features (`house_features.py`)
 
 ```bash
-python data-processing/house/house_features.py   # -> data/processed/house/{basic_f,nat_political_f,acs_f,modeling}.csv
+python data-processing/house/house_features.py   # -> data/processed/house/{basic_f,nat_political_f,acs_f,fec_f,prices_f,modeling}.csv
 ```
 
 | File | Key | Contents |
@@ -110,21 +111,26 @@ python data-processing/house/house_features.py   # -> data/processed/house/{basi
 | `nat_political_f.csv` | `year` | Every `data/reference/generic_ballot.csv` field prefixed `gb_`; `election` → `year`, `dem/gop/und_estimate` → `gb_dem_pct / gb_gop_pct / gb_und_pct` |
 | `acs_f.csv` | `year, state, district` | `acs_vintage` through `rel_state_housing_burden` from `acs_supplement.csv` |
 | `fec_f.csv` | `year, state, district` | `fundraising_advantage`, `spending_advantage`, `small_dollar_share_diff`, `dem_fec_missing`, `gop_fec_missing` from `data/processed/house_fec.csv` (see below) |
-| `modeling.csv` | `year, state, district` | `basic_f`, `acs_f` and `fec_f` joined on the key, then `nat_political_f` joined on `year` |
+| `prices_f.csv` | `year, state, district` | `census_region`, `price_data_month` and the 18 CPI-U / gasoline features of the district's Census region, from `data/processed/cpi_gas_region.csv` (`data-processing/cpi_gas.py`), then the eight unemployment features of its state, from `data/processed/unemployment_state.csv` (`data-processing/unemployment.py`); see `../README.md` |
+| `modeling.csv` | `year, state, district` | `basic_f`, `acs_f`, `fec_f` and `prices_f` joined on the key, then `nat_political_f` joined on `year` |
 
 - **Joins:** the district tables must have unique keys and exactly the same keys, and no column may appear in two of
   them; otherwise the script raises.
 - **`fec_f.csv`** (from `data-processing/fec_finance.py`'s `house_fec.csv`; see `../README.md`):
   - **Capped:** the two log advantages are capped at ±`FEC_LOG_CAP` (5, a 148:1 ratio). Uncapped, a funded nominee
     against one with no money gives about ±14, so the values are bimodal and that tail would dominate a linear fit.
-  - **Known gaps:** `FEC_KNOWN_GAPS` blanks every FEC feature in six races where a funded winner has no FEC data:
-    MD-4 and TX-3 in 2022 and 2024, IN-3 and VA-5 in 2024. `house_fec.csv` zero-fills those slots. Other
-    `no_fec_record` slots keep 0, mostly unfunded minor nominees.
+  - **Known gaps:** `FEC_KNOWN_GAPS` would blank every FEC feature in a race where a funded nominee has no FEC data.
+    It is empty: its six former races (MD-4 and TX-3 in 2022 and 2024, IN-3 and VA-5 in 2024) are now filled from
+    their principal committees' FEC totals (`../README.md`). The remaining `no_fec_record` slots keep 0, mostly
+    unfunded minor nominees.
   - **Other blanks:** `small_dollar_share_diff` is blank in 2006 and wherever a share is undefined, and the 2026 races
     with an unresolved nominee are blank too. `run_ols` leaves blank rows out (`missing:<var>`).
   - **Timing (accepted, not fixed):** 2006–2024 values are FEC's full-cycle summaries through December 31, which
     include post-election money. 2026 values run through mid-October. A pre-general cutoff for every year would need
     report-level FEC data.
+- **`prices_f.csv`:** each district gets its state's Census region values, from September of the election year (the
+  last month BLS has published before Election Day), and its state's unemployment rates from September too. Run
+  `cpi_gas.py` and `unemployment.py` first.
 - **2026** has no generic-ballot row yet, so its `gen_margin_raw` and `gb_*` fields are blank. Nothing is filled in.
 - `src/house/regression` loads `modeling.csv` as the predictors, so a feature set in its `config.py` can mix columns
   from every tranche. It loads the targets separately from `targets.csv`, and `modeling.csv` must not contain any.

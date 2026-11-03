@@ -92,14 +92,15 @@ def with_flag(flags: pd.Series, flag: str) -> pd.Series:
     return flags.fillna("").map(lambda f: f"{f};{flag}" if f else flag)
 
 
-def state_references(targets: pd.DataFrame, lean: pd.DataFrame) -> pd.DataFrame:
-    """Per (year, state): n_references, turnout_hat and state_adjustment, from the reference races."""
+def state_references(targets: pd.DataFrame, lean: pd.DataFrame, key: list[str] = KEY) -> pd.DataFrame:
+    """Per (year, state): n_references, turnout_hat and state_adjustment, from the reference races. `key` is the race
+    key (the Senate targets pass year, state, class)."""
     ref = targets[targets["race_type"].isin(REFERENCE_RACE_TYPES) & targets["dem_votes"].notna()
                   & targets["gop_votes"].notna()
                   & ~targets["quality_flags"].fillna("").str.contains(NOT_FIRST_ROUND_FLAG)]
-    ref = ref[ref["dem_votes"] + ref["gop_votes"] > 0].merge(lean, on=KEY, how="left", validate="one_to_one")
+    ref = ref[ref["dem_votes"] + ref["gop_votes"] > 0].merge(lean, on=key, how="left", validate="one_to_one")
     if ref["lean"].isna().any():
-        raise ValueError(f"Reference races without a partisan lean: {ref.loc[ref['lean'].isna(), KEY].values.tolist()}")
+        raise ValueError(f"Reference races without a partisan lean: {ref.loc[ref['lean'].isna(), key].values.tolist()}")
     two_party = (ref["dem_votes"] + ref["gop_votes"]).astype(float)
     ref = ref.assign(two_party=two_party, residual=ref["dem_votes"].astype(float) / two_party - ref["lean"])
     return ref.groupby(["year", "state"]).agg(n_references=("residual", "size"), turnout_hat=("two_party", "mean"),
@@ -107,21 +108,22 @@ def state_references(targets: pd.DataFrame, lean: pd.DataFrame) -> pd.DataFrame:
         .assign(turnout_hat=lambda g: np.round(g["turnout_hat"]).astype("int64")).reset_index()
 
 
-def impute_uncontested(targets: pd.DataFrame, lean: pd.DataFrame, shave: pd.DataFrame) -> pd.DataFrame:
+def impute_uncontested(targets: pd.DataFrame, lean: pd.DataFrame, shave: pd.DataFrame,
+                       key: list[str] = KEY) -> pd.DataFrame:
     """targets with each UNCONTESTED_RACE_TYPES row's target imputed from its state's reference races, or from the
-    national SHAVE (read_shave) where the state has none."""
+    national SHAVE (read_shave) where the state has none. `key` is the race key (see state_references)."""
     out = targets.copy()
     rows = out["race_type"].isin(UNCONTESTED_RACE_TYPES)
     observed = rows & out["is_imputed"].eq(False)
     if observed.any():
         raise ValueError(f"{int(observed.sum())} uncontested rows have an observed target, e.g. "
-                         f"{out.loc[observed, KEY].head(3).values.tolist()}")
+                         f"{out.loc[observed, key].head(3).values.tolist()}")
     out.loc[rows, ["adj_margin_2p_norm", "dem_votes_imputed", "gop_votes_imputed", "is_imputed",
                    "imputation_method"]] = None
     out.loc[rows, "quality_flags"] = without_flags(out.loc[rows, "quality_flags"])
 
-    states = state_references(out, lean)
-    found = out.loc[rows, KEY].merge(lean, on=KEY, how="left", validate="one_to_one") \
+    states = state_references(out, lean, key)
+    found = out.loc[rows, key].merge(lean, on=key, how="left", validate="one_to_one") \
         .merge(states, on=["year", "state"], how="left", validate="many_to_one") \
         .merge(shave, on="year", how="left", validate="many_to_one").set_index(out.index[rows])
     no_lean, no_reference = found["lean"].isna(), found["n_references"].isna()
@@ -134,7 +136,7 @@ def impute_uncontested(targets: pd.DataFrame, lean: pd.DataFrame, shave: pd.Data
     primary = found[~no_lean & ~no_reference]
     turnout = primary["turnout_hat"].astype("int64")
     if (turnout <= 0).any():
-        raise ValueError(f"Zero turnout estimate for {primary.loc[turnout <= 0, KEY].values.tolist()}")
+        raise ValueError(f"Zero turnout estimate for {primary.loc[turnout <= 0, key].values.tolist()}")
     share = (primary["lean"] + primary["state_adjustment"]).clip(0, 1)
     dem = np.round(turnout * share).astype("int64")
     gop = turnout - dem

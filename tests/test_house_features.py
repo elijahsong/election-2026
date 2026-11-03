@@ -11,7 +11,7 @@ def test_tables_join_and_keep_missing_generic_ballot_blank(monkeypatch):
     lean = keys.assign(partisan_lean=[-10.0, 2.0, -12.0], cook_pvi=0.0)
     inc = keys.assign(inc_signed=[-1, 1, 0], status="incumbent")
     acs_supplement = keys.assign(acs_vintage="2024_1yr", college=[30.0, 35.0, 31.0], rel_state_housing_burden=0.0,
-                                 extra_after="dropped")
+                                 rel_state_hispanic=0.0, extra_after="dropped")
 
     basic = hf.basic_features(gb, lean, inc)
     nat = hf.nat_political_features(gb)
@@ -21,7 +21,8 @@ def test_tables_join_and_keep_missing_generic_ballot_blank(monkeypatch):
                       dem_name="dropped")
     monkeypatch.setattr(hf, "FEC_KNOWN_GAPS", [])
     fec_f = hf.fec_features(fec)
-    modeling = hf.modeling_table(basic, hf.acs_features(acs_supplement), fec_f, nat)
+    prices_f = keys.assign(census_region=["west", "south", "west"], cpi_region_yoy=[3.1, 2.4, None])
+    modeling = hf.modeling_table(basic, hf.acs_features(acs_supplement), fec_f, prices_f, nat)
 
     assert list(basic.columns) == ["year", "state", "district", "gen_margin_raw", "partisan_lean", "inc_signed"]
     assert list(nat.columns) == ["year", "gb_cutoff_date", "gb_margin_raw", "gb_dem_pct", "gb_gop_pct", "gb_und_pct"]
@@ -30,6 +31,7 @@ def test_tables_join_and_keep_missing_generic_ballot_blank(monkeypatch):
     assert modeling["spending_advantage"].tolist()[:2] == [-hf.FEC_LOG_CAP, 0.3]
     assert modeling.loc[modeling["year"] == 2024, "gen_margin_raw"].tolist() == [1.5, 1.5]
     assert modeling.loc[modeling["year"] == 2026, ["gen_margin_raw", "gb_dem_pct"]].isna().all().all()
+    assert modeling["cpi_region_yoy"].tolist()[:2] == [3.1, 2.4] and pd.isna(modeling.loc[2, "cpi_region_yoy"])
 
     with pytest.raises(ValueError, match="lacks 1 keys"):
         hf.basic_features(gb, lean, inc.iloc[:2])

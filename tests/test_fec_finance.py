@@ -154,3 +154,48 @@ def test_candidates_in_handles_an_item_on_the_plainlist_line():
     assert nominees_2026.candidates_in(block) == [("Mike Collins", "Republican"), ("Jon Ossoff", "Democratic")]
     with pytest.raises(ValueError, match="Unparsed"):
         nominees_2026.candidates_in("*{{Party stripe|Green Party (US)}}Nobody")
+
+
+def test_independents_fill_the_dem_slot_only_when_they_caucus_with_democrats():
+    # SYNTHETIC candidates for two real INDEPENDENTS_AS_DEM / INDEPENDENT_CANDIDATES keys
+    cands = pd.DataFrame([
+        {"year": 2012, "state": "ME", "class": 1, "party": "other", "name": "KING, ANGUS S., JR.", "votes": 3.0},
+        {"year": 2012, "state": "ME", "class": 1, "party": "D", "name": "DILL, CYNTHIA ANN", "votes": 1.0},
+        {"year": 2012, "state": "ME", "class": 1, "party": "R", "name": "SUMMERS, CHARLES", "votes": 2.0},
+        {"year": 2022, "state": "UT", "class": 3, "party": "other", "name": "MCMULLIN, EVAN", "votes": 2.0},
+        {"year": 2022, "state": "UT", "class": 3, "party": "R", "name": "LEE, MIKE", "votes": 3.0},
+    ])
+    entries = {k: v for k, v in fec_finance.INDEPENDENTS_AS_DEM.items() if k == ("senate", 2012, "ME", 1)}
+    others = {k: v for k, v in fec_finance.INDEPENDENT_CANDIDATES.items() if k == ("senate", 2022, "UT", 3)}
+    saved = fec_finance.INDEPENDENTS_AS_DEM, fec_finance.INDEPENDENT_CANDIDATES
+    fec_finance.INDEPENDENTS_AS_DEM, fec_finance.INDEPENDENT_CANDIDATES = entries, others
+    try:
+        slots = fec_finance.choose_slots(cands, ["year", "state", "class"], "senate").set_index(["state", "slot"])
+    finally:
+        fec_finance.INDEPENDENTS_AS_DEM, fec_finance.INDEPENDENT_CANDIDATES = saved
+    assert slots.loc[("ME", "dem"), ["name", "preset_status", "displaced"]].tolist() == [
+        "KING, ANGUS S., JR.", "independent_as_dem", "DILL, CYNTHIA ANN"]
+    assert ("ME", "ind") not in slots.index
+    # McMullin is kept in the ind slot, and the dem slot stays empty (no D nominee)
+    assert slots.loc[("UT", "dem"), "preset_status"] == "no_nominee"
+    assert slots.loc[("UT", "ind"), ["name", "preset_status"]].tolist() == ["MCMULLIN, EVAN", "independent"]
+
+
+def test_suspect_records_flag_empty_money_in_won_or_close_races(monkeypatch):
+    key = ["year", "state", "district"]
+    df = pd.DataFrame({"year": [2024, 2024, 2024, 2024], "state": ["CA", "OH", "TX", "WA"], "district": [31, 1, 2, 10]})
+    for slot in ["dem", "gop"]:
+        df[f"{slot}_name"], df[f"{slot}_candidate_id"] = "X", "H0"
+        df[f"{slot}_match_status"] = "name_full"
+        df[f"{slot}_receipts"] = 1e6
+        df[f"{slot}_coverage_end_date"] = "2024-12-31"
+    # CA: the D winner with $0 and no coverage; OH: an R losing by 9 with a record ending in 2023; TX: an R losing by
+    # 40 with $0 (a blowout, not flagged); WA: an empty record the review found genuine
+    df.loc[0, ["dem_receipts", "dem_coverage_end_date"]] = [0.0, None]
+    df.loc[1, ["gop_receipts", "gop_coverage_end_date"]] = [40.0, "2023-09-30"]
+    df.loc[2, ["gop_receipts", "gop_coverage_end_date"]] = [0.0, None]
+    df.loc[3, ["gop_receipts", "gop_coverage_end_date"]] = [0.0, None]
+    results = df[key].assign(winner_party="D", margin_2p_norm=[19.5, 9.2, 40.0, 5.0])
+    monkeypatch.setattr(fec_finance, "REVIEWED_LOW_FUNDING", {("house", 2024, "WA", 10, "R"): "reviewed"})
+    out = fec_finance.suspect_records(df, results, "house", key)
+    assert list(zip(out["state"], out["party"])) == [("CA", "D"), ("OH", "R")]

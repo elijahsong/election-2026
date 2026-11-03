@@ -22,7 +22,9 @@ Nominees (one D and one R slot per race; read-only from the repo's sources):
   A party's slot is its leading named general-election candidate by votes (jungle, top-two, RCV and party write-ins
   can give a party more than one; {party}_candidate_count says how many). In 2026 there are no votes yet: a party's only
   candidate fills the slot; with several, the one FEC flags as the incumbent does, else the slot is nominee_unresolved.
-  INDEPENDENTS_AS_DEM puts the independents who were the Democratic side of a race in the dem slot. Party labels are
+  INDEPENDENTS_AS_DEM puts the independents who caucus with Democrats (Sanders, King) in the dem slot, with
+  dem_is_independent True. INDEPENDENT_CANDIDATES (Orman, McMullin, Osborn, Buchanan) stay independents: their FEC
+  totals are in a third slot, ind_, and the dem slot is the race's D nominee (or no_nominee). Party labels are
   otherwise strict: an independent is never a D or R nominee.
 
 Matching: no crosswalk from either source to FEC IDs exists, so each slot's nominee is matched by name (match_name)
@@ -41,7 +43,9 @@ match_status, per slot:
   duplicate_registration  several FEC records of one person; the only one with filings, or one of identical records
   override                MATCH_OVERRIDES
   fec_api                 API_CORRECTIONS: the cycle totals from the FEC API, for a nominee missing from both bulk files
+                          or whose only record there is empty
   independent_as_dem      INDEPENDENTS_AS_DEM
+  independent             INDEPENDENT_CANDIDATES (the ind slot)
   no_fec_record           the nominee is known but has no FEC record
   ambiguous               several different FEC records match equally well; none is used
   no_nominee              the party had no general-election candidate
@@ -49,7 +53,8 @@ match_status, per slot:
                           (no votes yet), or tied leaders
 
 Missing data: amounts are 0 when there is no nominee or no usable FEC record (no_nominee, no_fec_record, ambiguous),
-  with {party}_fec_missing True. They are blank for nominee_unresolved, whose nominee isn't known. Names are kept only
+  with {party}_fec_missing True. They are blank for nominee_unresolved, whose nominee isn't known, and every ind_
+  column is blank in races without an INDEPENDENT_CANDIDATES entry. Names are kept only
   where the source names a nominee; IDs and dates are never filled in. A blank in a matched FEC record stays blank.
 """
 
@@ -74,6 +79,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FEC_DIR = ROOT / "data/raw/fec_candidate_summaries"
 NOMINEES_2026_DIR = ROOT / "data/raw/nominees_2026"
 TARGETS_RAW_PATH = ROOT / "data/processed/house/targets_raw.csv"
+SENATE_TARGETS_RAW_PATH = ROOT / "data/processed/senate/targets_raw.csv"
 SENATE_INCUMBENCY_PATH = ROOT / "data/interim/senate_incumbency.csv"
 DISTRICT_COUNTS_PATH = ROOT / "data/reference/district_counts.json"
 INTERIM_DIR = ROOT / "data/interim"
@@ -82,6 +88,7 @@ PROCESSED_DIR = ROOT / "data/processed"
 YEARS = list(range(2006, 2027, 2))
 WEBL_ONLY_YEAR = 2006  # the only year without a candidate summary file
 PARTIES = {"dem": "D", "gop": "R"}
+SLOT_PARTY = {**PARTIES, "ind": "I"}  # the party code of every slot, the ind slot included
 
 # canonical name -> candidate summary column; the same nine fields are kept for each party
 FINANCE = {
@@ -112,13 +119,19 @@ WEBL_FINANCE = {"receipts": "TTL_RECEIPTS", "disbursements": "TTL_DISB", "indivi
 WEBL_ICI = {"I": "INCUMBENT", "C": "CHALLENGER", "O": "OPEN"}
 FEC_PARTY = {"DEM": "D", "DFL": "D", "REP": "R"}
 
-# Independents counted as the Democratic side: each replaces the dem slot (status independent_as_dem), and any D
-# nominee it displaces is reported. key: (chamber, year, state, district or class) -> the name as the source spells it
+# Independents who caucus with Democrats, counted as the Democratic side: each replaces the dem slot (status
+# independent_as_dem, dem_is_independent True), and any D nominee it displaces is reported.
+# key: (chamber, year, state, district or class) -> the name as the source spells it
 INDEPENDENTS_AS_DEM = {
     # Sanders caucuses with Democrats and won the D primary each time, declining the nomination; no D on the ballot
     **{("senate", year, "VT", 1): "SANDERS, BERNARD (BERNIE)" for year in (2006, 2012, 2018, 2024)},
     # King caucuses with Democrats; the D nominee was a distant third each time
     **{("senate", year, "ME", 1): "KING, ANGUS S., JR." for year in (2012, 2018, 2024)},
+}
+# Other leading independents, who didn't commit to caucusing with Democrats: never the D nominee, so the dem slot
+# keeps the race's Democrat (or no_nominee). Their FEC totals are kept in the ind slot (status independent).
+# key as above
+INDEPENDENT_CANDIDATES = {
     ("senate", 2014, "KS", 2): "ORMAN, GREGORY JOHN (GREG)",  # the D nominee (Taylor) withdrew to clear the field
     ("senate", 2022, "UT", 3): "MCMULLIN, EVAN",  # Utah Democrats endorsed him and ran no nominee
     ("senate", 2024, "NE", 1): "OSBORN, DAN",  # no D nominee
@@ -149,12 +162,23 @@ MATCH_OVERRIDES = {
     ("house", 2006, "CA", 9, "R"): "H6CA09080",
     # MEDSL's "JOHN ABNEY" is incumbent John Abney Culberson, the surname dropped
     ("house", 2008, "TX", 7, "R"): "H0TX07055",
+    # found by suspect_records (fec_api_totals.py --review): the name match picked another, empty record
+    # incumbent Jason Smith; his record's party is UNK, so the surname match took Phillip S. Smith (H6MO08134, $0)
+    ("house", 2016, "MO", 8, "R"): "H4MO08162",
+    # incumbent Mike Kelly, filed as GEORGE J KELLY JR; "KELLY, MIKE" (H4PA03117) is an empty registration
+    ("house", 2016, "PA", 3, "R"): "H0PA03271",
+    # MEDSL's "GABBY SAUCEDO" is Gabriela Saucedo Mercer, filed as "MERCER, GABRIELA SAUCEDO MRS"
+    ("house", 2014, "AZ", 3, "R"): "H2AZ07146",
+    # Ben Clark, filed as "CLARK, ROBERT BENJAMIN III" for NC-4 before the 2022 redraw; H2NC09225 is an empty one
+    ("house", 2022, "NC", 9, "D"): "H2NC04150",
 }
 
-# Nominees missing from both bulk files for their cycle, filled from the FEC API's candidate totals for that cycle
+# Nominees missing from both bulk files for their cycle, or matched there only to an empty record (every amount 0, no
+# coverage dates), filled from the FEC API's candidate totals for that cycle
 # (/v1/candidate/{id}/totals/?cycle=YEAR&election_full=false, the same two-year definitions as the bulk files).
-# fec_api_totals.py fetches them into API_TOTALS_PATH; a correction applies only to a slot left no_fec_record, and one
-# whose fetch failed leaves the slot as it was (reported). key as in MATCH_OVERRIDES -> FEC candidate ID
+# fec_api_totals.py fetches them into API_TOTALS_PATH; a correction applies only to a slot left no_fec_record or matched
+# to an empty record, and one whose fetch failed leaves the slot as it was (reported). key as in MATCH_OVERRIDES -> FEC
+# candidate ID
 API_CORRECTIONS = {
     ("house", 2018, "MD", 6, "D"): "H6MD08549",  # David Trone
     ("house", 2020, "CA", 50, "R"): "H0CA48024",  # Darrell Issa
@@ -167,8 +191,69 @@ API_CORRECTIONS = {
     ("house", 2024, "NY", 4, "D"): "H2NY04244",  # Laura Gillen
     ("house", 2024, "TX", 3, "R"): "H2TX00064",  # Keith Self
     ("house", 2024, "VA", 5, "R"): "H0VA07133",  # John McGuire
+    # Lucas Kunce: candidate_summary_2024 has his ID with every amount 0 and no coverage dates; not in webl24
+    ("senate", 2024, "MO", 1, "D"): "S2MO00528",
+    # found by suspect_records (fec_api_totals.py --review)
+    ("house", 2018, "NV", 3, "R"): "H2NV04045",  # Danny Tarkanian: in neither 2018 bulk file
+    ("house", 2020, "AZ", 2, "R"): "H8AZ02201",  # Brandon Martin: in neither 2020 bulk file
+    ("house", 2024, "CA", 31, "D"): "H8CA39174",  # Gil Cisneros: candidate_summary_2024 has his ID with every amount 0
+    ("house", 2008, "NM", 2, "R"): "H2NM02134",  # Ed Tinsley: candidate_summary_2008 has his ID with every amount 0
+    ("house", 2024, "OH", 1, "R"): "H4OH01109",  # Orlando Sonza: candidate_summary_2024 has his ID with every amount 0
+}
+# Corrections whose FEC candidate totals are empty or leave out the campaign, though its principal committee filed for
+# the cycle: fec_api_totals.py takes that committee's two-year totals instead (/v1/committee/{id}/totals/?cycle=YEAR).
+# Checked 2026-11-02 against each candidate's committee list; the receipts are the committee's for the cycle.
+# candidate ID -> committee ID
+API_COMMITTEE_TOTALS = {
+    # Kunce: Heartland Patriots, his principal committee for 2022-2026, is designated U (unauthorized) for 2024, so
+    # his 2024 candidate totals are 0 ($23.2M receipts, 2023-01-01 to 2024-12-31)
+    "S2MO00528": "C00771972",
+    # Gillen: her 2024 candidate totals ($4.89, January 2023) are her 2022 committee's wind-down; the 2024 campaign
+    # is Gillen for NY ($6.83M, 2023-04-01 to 2024-12-31)
+    "H2NY04244": "C00840165",
+    # no candidate totals at all; each campaign's principal committee (P) for the cycle:
+    "H2MD04232": "C00792283",  # Glenn F. Ivey for Congress: $1.90M 2022, $0.94M 2024
+    "H2TX00064": "C00791293",  # Self for Congress: $0.59M 2022, $0.74M 2024
+    "H0IN03198": "C00838110",  # Stutzman for Congress: $1.39M 2024
+    "H0VA07133": "C00856831",  # McGuire for Virginia: $1.84M 2024 (its $7,000 recount committee is left out)
+    "H8CA39174": "C00850420",  # Cisneros for Congress: $6.48M 2024
+    # Tinsley for Congress: a principal House campaign committee in Capitan, NM, first filed 2007-11-21, that FEC links
+    # to no candidate ID; $2.40M 2008 (his ID's only 2008 committee is a joint fundraising one)
+    "H2NM02134": "C00441394",
+    # Sonza: FEC lists no campaign committee for him, only Southwest Ohio Leadership PAC (a leadership PAC, linked to
+    # his ID, first filed 2023-07-10; $1.17M 2024). Counted as his campaign's money by decision (2026-11-02), though
+    # leadership PAC receipts aren't campaign receipts
+    "H4OH01109": "C00845065",
 }
 API_TOTALS_PATH = FEC_DIR / "api/api_totals.csv"
+
+# Report-only check (suspect_records): a slot whose FEC money looks empty (receipts under SUSPECT_RECEIPTS, with no
+# coverage dates or coverage ending before July of the election year) though its nominee won or finished within
+# SUSPECT_MARGIN points (2006-2024, from targets_raw.csv). Kunce and Gillen looked like this: a campaign committee
+# FEC's candidate totals leave out, fixed with API_CORRECTIONS / API_COMMITTEE_TOTALS. REVIEWED_LOW_FUNDING lists
+# slots checked against the FEC API's committee list and found genuinely low-funded, so they're no longer reported.
+SUSPECT_RECEIPTS = 50_000
+SUSPECT_MARGIN = 20
+# key as in MATCH_OVERRIDES -> what the review (2026-11-02) found
+REVIEWED_LOW_FUNDING: dict[tuple, str] = {
+    **dict.fromkeys([
+        ("house", 2006, "OH", 16, "D"),  # Thomas Shaw (H6OH16128)
+        ("house", 2012, "OH", 2, "D"),  # William R. Smith
+        ("house", 2012, "OH", 14, "D"),  # Dale Virgil Blanchard
+        ("house", 2016, "NC", 5, "D"),  # Josh Brannon (Gregory Brannon, NC-2 R, is another person)
+        ("house", 2016, "NJ", 11, "D"),  # Joseph M. Wenzel, under either of his IDs
+        ("house", 2016, "WA", 10, "R"),  # Jim Postma
+        ("house", 2020, "IN", 1, "R"),  # Mark Leyva
+        ("house", 2022, "CA", 31, "R"),  # Daniel Bocic Martinez
+        ("house", 2024, "CA", 31, "R"),  # Daniel Bocic Martinez, under either of his IDs
+        ("house", 2024, "MA", 9, "R"),  # Dan Sullivan
+        ("house", 2024, "NC", 7, "D"),  # Marlando Pridgen, under either of his IDs
+        ("house", 2024, "NC", 8, "D"),  # Justin Dues
+        ("senate", 2012, "MS", 1, "D"),  # Albert N. Gore Jr.
+    ], "no committee with totals for the cycle"),
+    ("house", 2024, "WA", 10, "R"): "Don Hewett: his one committee took in $40 and stopped filing after 2023-09-30",
+    ("senate", 2008, "SC", 2, "D"): "Bob Conley: his one committee took in $17,105 and filed through 2008-06-30",
+}
 
 # Name parsing: words dropped as titles or suffixes, and first-name nicknames that aren't a prefix of the formal name
 # (prefixes like CHRIS / CHRISTOPHER are matched by rule)
@@ -481,9 +566,10 @@ def match_slot(nominee: str, party: str, race: dict, chamber: str, fec: pd.DataF
 # ---------------------------------------------------------------- races
 
 def choose_slots(cands: pd.DataFrame, key: list[str], chamber: str) -> pd.DataFrame:
-    """One row per race and party slot (dem, gop): the chosen candidate's name (blank for no_nominee and
-    nominee_unresolved), candidate_count, and preset_status (independent_as_dem / no_nominee / nominee_unresolved, or
-    blank when the name is to be matched). 2026 slots with several candidates carry their names in `options`."""
+    """One row per race and party slot (dem, gop), plus an ind slot for each INDEPENDENT_CANDIDATES race: the chosen
+    candidate's name (blank for no_nominee and nominee_unresolved), candidate_count, and preset_status
+    (independent_as_dem / independent / no_nominee / nominee_unresolved, or blank when the name is to be matched).
+    2026 slots with several candidates carry their names in `options`."""
     rows = []
     for values, race in cands.groupby(key):
         race_key = dict(zip(key, values))
@@ -504,20 +590,27 @@ def choose_slots(cands: pd.DataFrame, key: list[str], chamber: str) -> pd.DataFr
             rows.append(row)
     slots = pd.DataFrame(rows)
 
-    # INDEPENDENTS_AS_DEM: the named independent takes the dem slot
+    # INDEPENDENTS_AS_DEM: the named independent takes the dem slot; INDEPENDENT_CANDIDATES: an ind slot
     slots["displaced"] = None
-    for (ch, year, state, seat), name in INDEPENDENTS_AS_DEM.items():
-        if ch != chamber:
-            continue
-        seat_col = "district" if chamber == "house" else "class"
-        race = cands[(cands["year"] == year) & (cands["state"] == state) & (cands[seat_col] == seat)]
-        if ((race["name"] == name) & (race["party"] == "other")).sum() != 1:
-            raise ValueError(f"INDEPENDENTS_AS_DEM {(ch, year, state, seat)}: {name!r} isn't one non-major-party "
-                             "candidate of that race")
-        hit = (slots["year"] == year) & (slots["state"] == state) & (slots[seat_col] == seat) & (slots["slot"] == "dem")
-        slots.loc[hit, "displaced"] = slots.loc[hit, "name"]
-        slots.loc[hit, ["name", "preset_status", "options"]] = [name, "independent_as_dem", None]
-    return slots
+    seat_col = "district" if chamber == "house" else "class"
+    independents = []
+    for table, entries in [("INDEPENDENTS_AS_DEM", INDEPENDENTS_AS_DEM), ("INDEPENDENT_CANDIDATES", INDEPENDENT_CANDIDATES)]:
+        for (ch, year, state, seat), name in entries.items():
+            if ch != chamber:
+                continue
+            race = cands[(cands["year"] == year) & (cands["state"] == state) & (cands[seat_col] == seat)]
+            if ((race["name"] == name) & (race["party"] == "other")).sum() != 1:
+                raise ValueError(f"{table} {(ch, year, state, seat)}: {name!r} isn't one non-major-party candidate "
+                                 "of that race")
+            if table == "INDEPENDENT_CANDIDATES":
+                independents.append({"year": year, "state": state, seat_col: seat, "slot": "ind", "candidate_count": 1,
+                                     "name": name, "preset_status": "independent", "options": None, "displaced": None})
+                continue
+            hit = (slots["year"] == year) & (slots["state"] == state) & (slots[seat_col] == seat) \
+                & (slots["slot"] == "dem")
+            slots.loc[hit, "displaced"] = slots.loc[hit, "name"]
+            slots.loc[hit, ["name", "preset_status", "options"]] = [name, "independent_as_dem", None]
+    return pd.concat([slots, pd.DataFrame(independents, columns=slots.columns)], ignore_index=True)
 
 
 def resolve_2026_by_incumbent(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame) -> pd.DataFrame:
@@ -551,7 +644,7 @@ def match_slots(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame, webl_only:
     used_overrides, matched, review = set(), [], []
     for row in slots.to_dict("records"):
         at_large = chamber == "house" and row["state"] in at_large_states[row["year"]]
-        override_key = (chamber, row["year"], row["state"], row[seat], PARTIES[row["slot"]])
+        override_key = (chamber, row["year"], row["state"], row[seat], SLOT_PARTY[row["slot"]])
         records = fec.iloc[:0]
         if row["preset_status"] in ("no_nominee", "nominee_unresolved"):
             status = row["preset_status"]
@@ -564,10 +657,11 @@ def match_slots(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame, webl_only:
             if candidate_id is not None and len(records) != 1:
                 raise ValueError(f"MATCH_OVERRIDES {override_key}: {candidate_id} matches {len(records)} records")
         else:
-            party = "other" if row["preset_status"] == "independent_as_dem" else PARTIES[row["slot"]]
+            independent = row["preset_status"] in ("independent_as_dem", "independent")
+            party = "other" if independent else PARTIES[row["slot"]]
             status, records = match_slot(row["name"], party, row, chamber, fec, webl_only, at_large)
-            if row["preset_status"] == "independent_as_dem" and len(records) == 1:
-                status = "independent_as_dem"
+            if independent and len(records) == 1:
+                status = row["preset_status"]
         matched.append((row, status, records, at_large))
 
     # second pass, House only: nominees still without a record may match one filed in another district of the
@@ -577,8 +671,9 @@ def match_slots(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame, webl_only:
                  if len(recs) == 1 and st != "ambiguous"}
         for i, (row, status, records, at_large) in enumerate(matched):
             if status == "no_fec_record" and row["name"] is not None and \
-                    (chamber, row["year"], row["state"], row[seat], PARTIES[row["slot"]]) not in MATCH_OVERRIDES:
-                party = "other" if row["preset_status"] == "independent_as_dem" else PARTIES[row["slot"]]
+                    (chamber, row["year"], row["state"], row[seat], SLOT_PARTY[row["slot"]]) not in MATCH_OVERRIDES:
+                party = "other" if row["preset_status"] in ("independent_as_dem", "independent") \
+                    else PARTIES[row["slot"]]
                 status, records = match_slot(row["name"], party, row, chamber, fec, webl_only, at_large, taken)
                 if len(records) == 1 and status != "ambiguous":
                     taken.add((row["year"], records["candidate_id"].iloc[0]))
@@ -587,10 +682,12 @@ def match_slots(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame, webl_only:
     # API_CORRECTIONS: a nominee still without a record takes their FEC API cycle totals, matched by ID and year
     api = read_api_totals()
     for i, (row, status, records, at_large) in enumerate(matched):
-        key = (chamber, row["year"], row["state"], row[seat], PARTIES[row["slot"]])
+        key = (chamber, row["year"], row["state"], row[seat], SLOT_PARTY[row["slot"]])
         if key in API_CORRECTIONS:
-            if status != "no_fec_record":
-                raise ValueError(f"API_CORRECTIONS {key}: the slot is {status}, not no_fec_record")
+            empty_record = len(records) == 1 and records["coverage_end_date"].isna().all() \
+                and (records["receipts"] == 0).all()
+            if status != "no_fec_record" and not empty_record:
+                raise ValueError(f"API_CORRECTIONS {key}: the slot is {status}, not no_fec_record or an empty record")
             found = api[(api["year"] == row["year"]) & (api["candidate_id"] == API_CORRECTIONS[key])]
             if len(found) == 1:
                 matched[i] = (row, "fec_api", found.assign(office="H" if chamber == "house" else "S",
@@ -606,7 +703,7 @@ def match_slots(slots: pd.DataFrame, chamber: str, fec: pd.DataFrame, webl_only:
         if status != "name_full" or row["displaced"] is not None:
             considered = records if len(records) else fec.iloc[:0]
             review.append({"chamber": chamber, "year": row["year"], "state": row["state"], "seat": row[seat],
-                           "party": PARTIES[row["slot"]], "nominee": row["name"], "match_status": status,
+                           "party": SLOT_PARTY[row["slot"]], "nominee": row["name"], "match_status": status,
                            "candidate_count": row["candidate_count"],
                            "note": row["displaced"] or ("; ".join(row["options"]) if row["options"] else None),
                            "fec_records": "; ".join(f"{r.candidate_id} {r.fec_name} ({r.fec_party}, {r.fec_file})"
@@ -627,16 +724,18 @@ def read_api_totals(path: Path = API_TOTALS_PATH) -> pd.DataFrame:
 
 
 def wide(matched: pd.DataFrame, races: pd.DataFrame, key: list[str]) -> pd.DataFrame:
-    """One row per race: race columns, then each party's identifiers, match fields and finance fields, applying the
-    missing-data policy."""
+    """One row per race: race columns, then each slot's (dem, gop, ind) identifiers, match fields and finance fields,
+    applying the missing-data policy. The ind columns are blank in races without an ind slot."""
     out = races.copy()
     zero = {"no_nominee", "no_fec_record", "ambiguous"}
-    for slot in PARTIES:
+    for slot in SLOT_PARTY:
         m = matched[matched["slot"] == slot].set_index(key)
         part = pd.DataFrame(index=m.index)
         part["name"] = m["name"]
         part["candidate_id"] = m["candidate_id"]
         part["match_status"] = m["match_status"]
+        if slot == "dem":
+            part["is_independent"] = m["preset_status"] == "independent_as_dem"  # INDEPENDENTS_AS_DEM
         part["fec_missing"] = m["candidate_id"].isna()
         part["candidate_count"] = m["candidate_count"]
         part["fec_file"] = m["fec_file"]
@@ -647,7 +746,7 @@ def wide(matched: pd.DataFrame, races: pd.DataFrame, key: list[str]) -> pd.DataF
         for field in DATES:
             part[field] = pd.to_datetime(part[field])
         out = out.join(part.add_prefix(f"{slot}_"), on=key, validate="one_to_one")
-    return out
+    return out.astype({"ind_fec_missing": "boolean", "ind_candidate_count": "Int64"})
 
 
 def build_chamber(chamber: str, races: pd.DataFrame, cands: pd.DataFrame, key: list[str], fec: pd.DataFrame,
@@ -821,6 +920,27 @@ def cross_check(df: pd.DataFrame, webl: pd.DataFrame, chamber: str) -> list[str]
     return lines
 
 
+def suspect_records(df: pd.DataFrame, results: pd.DataFrame, chamber: str, key: list[str]) -> pd.DataFrame:
+    """Slots whose FEC money looks empty though the nominee won or finished within SUSPECT_MARGIN (see
+    SUSPECT_RECEIPTS), less REVIEWED_LOW_FUNDING. results: key, winner_party and margin_2p_norm."""
+    df = df.merge(results[[*key, "winner_party", "margin_2p_norm"]], on=key, how="inner", validate="one_to_one")
+    rows = []
+    for slot, party in PARTIES.items():
+        end = pd.to_datetime(df[f"{slot}_coverage_end_date"])
+        flagged = (~df[f"{slot}_match_status"].isin(["no_nominee", "nominee_unresolved"])
+                   & (df[f"{slot}_receipts"].fillna(0) < SUSPECT_RECEIPTS)
+                   & (end.isna() | (end < pd.to_datetime(df["year"].astype(str) + "-07-01")))
+                   & ((df["winner_party"] == party) | (df["margin_2p_norm"].abs() < SUSPECT_MARGIN)))
+        hits = df.loc[flagged, [*key, f"{slot}_name", f"{slot}_match_status", f"{slot}_candidate_id",
+                                f"{slot}_receipts", "winner_party", "margin_2p_norm"]]
+        rows.append(hits.set_axis([*key, "name", "match_status", "candidate_id", "receipts", "winner_party",
+                                   "margin_2p_norm"], axis=1).assign(party=party))
+    out = pd.concat(rows, ignore_index=True)
+    reviewed = [(chamber, *k[:3], p) in REVIEWED_LOW_FUNDING for k, p in
+                zip(out[key].itertuples(index=False, name=None), out["party"])]
+    return out[~pd.Series(reviewed, index=out.index, dtype=bool)].sort_values(key, ignore_index=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--cage", default=incumbency.CAGE_PATH, type=Path)
@@ -861,6 +981,12 @@ def main() -> None:
         for line in value_report(interim) + cross_check(interim, webl, chamber):
             print(line)
         print(share_report(processed))
+        results = pd.read_csv(TARGETS_RAW_PATH if chamber == "house" else SENATE_TARGETS_RAW_PATH)
+        suspects = suspect_records(interim, results, chamber, key)
+        print(f"Possibly empty FEC records of nominees who won or finished within {SUSPECT_MARGIN} points "
+              f"({len(suspects)}; review each, then add API_COMMITTEE_TOTALS or REVIEWED_LOW_FUNDING):")
+        if len(suspects):
+            print(suspects.to_string(index=False))
 
     review_df = pd.DataFrame(review_rows)
     api_used = review_df[review_df["match_status"] == "fec_api"]
@@ -877,7 +1003,7 @@ def main() -> None:
     print("\nReview (data/interim/fec_match_review.csv): " + ", ".join(
         f"{k} {v}" for k, v in review_df["match_status"].value_counts().items()))
     for status in ["ambiguous", "nominee_unresolved", "name_surname", "name_party_differs", "name_other_district",
-                   "independent_as_dem"]:
+                   "independent_as_dem", "independent"]:
         rows = review_df[review_df["match_status"] == status]
         if len(rows):
             print(f"-- {status} ({len(rows)}):")

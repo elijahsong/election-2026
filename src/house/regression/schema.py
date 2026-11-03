@@ -61,7 +61,7 @@ COLUMNS = {c.name: c for c in [
         "white", "black", "hispanic", "college", "median_income", "median_age", "moved_within_past_yr",
         "foreign_born", "unemployment", "poverty", "avg_household_size", "housing_burden", "rel_college",
         "log_rel_income", "rel_state_college", "log_rel_state_income", "rel_unemployment", "rel_state_unemployment",
-        "rel_housing_burden", "rel_state_housing_burden",
+        "rel_housing_burden", "rel_state_housing_burden", "rel_state_hispanic",
     ]),
     # fec_f.csv (FEC cycle totals; historical years run through Dec 31, after the election, 2026 through mid-October)
     Column("fundraising_advantage", "numeric", "predictor", "fec_f",
@@ -73,6 +73,58 @@ COLUMNS = {c.name: c for c in [
                        "or a source share outside [0, 1]"),
     Column("dem_fec_missing", "bool", "metadata", "fec_f", description="no FEC record (or no D nominee): amounts are 0"),
     Column("gop_fec_missing", "bool", "metadata", "fec_f", description="no FEC record (or no R nominee): amounts are 0"),
+    # prices_f.csv (data-processing/cpi_gas.py: the state's Census region, from the last month public before Election
+    # Day, September; percent changes on a 0-100 scale)
+    Column("census_region", "str", "metadata", "prices_f", pattern="northeast|midwest|south|west"),
+    Column("price_data_month", "str", "metadata", "prices_f", pattern=r"\d{4}-\d{2}",
+           description="the month of the CPI and gasoline levels used"),
+    Column("cpi_region_yoy", "numeric", "predictor", "prices_f", description="regional CPI-U (NSA) 12-month change, %"),
+    Column("cpi_us_yoy", "numeric", "predictor", "prices_f", description="national CPI-U (NSA) 12-month change, %"),
+    Column("cpi_region_minus_us_yoy", "numeric", "predictor", "prices_f",
+           description="cpi_region_yoy - cpi_us_yoy, percentage points"),
+    Column("cpi_region_24m", "numeric", "predictor", "prices_f",
+           description="regional CPI-U 24-month change, %"),
+    Column("cpi_region_6m", "numeric", "predictor", "prices_f", description="regional CPI-U 6-month change, %"),
+    Column("gas_region_price_3m", "numeric", "predictor", "prices_f",
+           description="regional regular gasoline, mean of the 3 months to price_data_month, $/gallon"),
+    Column("gas_region_yoy", "numeric", "predictor", "prices_f", description="regional gasoline 12-month change, %"),
+    Column("gas_region_minus_us", "numeric", "predictor", "prices_f",
+           description="regional - national gasoline price in price_data_month, $/gallon"),
+    Column("gas_region_real_price", "numeric", "predictor", "prices_f",
+           description="regional gasoline price in September 2026 dollars (regional CPI-U), $/gallon"),
+    Column("gas_region_6m_change", "numeric", "predictor", "prices_f", description="regional gasoline 6-month change, %"),
+    Column("gas_region_minus_us_yoy", "numeric", "predictor", "prices_f",
+           description="gas_region_yoy - the national gasoline 12-month change, percentage points"),
+    # natural logs, as log_rel_income; real prices here are in September 2005 dollars (each CPI series rescaled to Sep
+    # 2005 = 100; regional gas deflated by regional CPI, national gas by national CPI)
+    Column("cpi_region_log_yoy", "numeric", "predictor", "prices_f",
+           description="100 * log(regional CPI-U / 12 months earlier)"),
+    Column("cpi_region_log_diff_us", "numeric", "predictor", "prices_f",
+           description="cpi_region_log_yoy - the national log YoY, percentage points"),
+    Column("log_real_gas_price", "numeric", "predictor", "prices_f",
+           description="log of the regional gasoline price in September 2005 dollars"),
+    Column("log_rel_gas_price", "numeric", "predictor", "prices_f",
+           description="log(regional / national nominal gasoline price)"),
+    Column("log_rel_real_gas", "numeric", "predictor", "prices_f",
+           description="log(regional / national real gasoline price): the nominal gap adjusted for inflation "
+                       "accumulated since September 2005, not a cost-of-living comparison"),
+    Column("log_gas_yoy", "numeric", "predictor", "prices_f",
+           description="100 * log(regional gasoline price / 12 months earlier)"),
+    Column("log_real_gas_yoy", "numeric", "predictor", "prices_f",
+           description="100 * log(regional real gasoline price / 12 months earlier)"),
+    # the state's unemployment rate (data-processing/unemployment.py; seasonally adjusted, %, from September as above)
+    Column("unemp_state_rate", "numeric", "predictor", "prices_f", description="state unemployment rate, %"),
+    Column("unemp_us_rate", "numeric", "predictor", "prices_f", description="national unemployment rate, %"),
+    Column("unemp_state_minus_us", "numeric", "predictor", "prices_f",
+           description="state - national unemployment rate, percentage points"),
+    Column("log_unemp_state", "numeric", "predictor", "prices_f", description="log(state unemployment rate)"),
+    Column("log_rel_unemp", "numeric", "predictor", "prices_f", description="log(state rate / national rate)"),
+    Column("unemp_change_12m", "numeric", "predictor", "prices_f",
+           description="state rate, September - previous September, percentage points"),
+    Column("unemp_change_12m_minus_us", "numeric", "predictor", "prices_f",
+           description="unemp_change_12m - the national 12-month change, percentage points"),
+    Column("unemp_change_3m", "numeric", "predictor", "prices_f",
+           description="state rate, September - June, percentage points"),
     # nat_political_f.csv
     Column("gb_cutoff_date", "str", "metadata", "nat_political_f", pattern=DATE),
     Column("gb_date", "str", "metadata", "nat_political_f", pattern=DATE),
@@ -85,7 +137,7 @@ COLUMNS = {c.name: c for c in [
 
 # tranche -> its registered predictors, for building feature sets in config.py
 TRANCHES = {t: [c.name for c in COLUMNS.values() if c.tranche == t and c.role == "predictor"]
-            for t in ["basic_f", "acs_f", "fec_f", "nat_political_f"]}
+            for t in ["basic_f", "acs_f", "fec_f", "prices_f", "nat_political_f"]}
 
 # data/processed/house/targets.csv (and targets_raw.csv, all years), in file order: TARGET_COLUMNS, then provenance.
 # Check it with validate_schema(df, schema=TARGETS_SCHEMA).

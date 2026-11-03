@@ -26,6 +26,7 @@ def acs_csv(fake_api, tmp_path):
     # California: 30% college, $70,000 income; every other state matches its districts exactly
     ca = next(r for r in state["state:*"] if r["state"] == "06")
     ca.update({v: "36000" for v in COLLEGE_CELLS}, B19013_001E="70000")
+    ca.update({f"{t}03002_012E": "175000" for t in "BC"})  # 25% Hispanic (districts: 140,000 / 700,000 = 20%)
     return path
 
 
@@ -45,8 +46,10 @@ def test_relative_columns(acs_csv, tmp_path):
     ca, rest = out[out["state"] == "CA"], out[out["state"] != "CA"]
     assert (ca["rel_state_college"] == 3.33).all()
     assert (ca["log_rel_state_income"] == round(math.log(65_432 / 70_000), 4)).all()
+    assert (ca["rel_state_hispanic"] == -5.0).all()  # 20.00 - 25.00
     # districts equal to their state (including every at-large one) compare as exactly zero, never -0.0
-    for col in ["rel_state_college", "log_rel_state_income", "rel_state_unemployment", "rel_state_housing_burden"]:
+    for col in ["rel_state_college", "log_rel_state_income", "rel_state_unemployment", "rel_state_housing_burden",
+                "rel_state_hispanic"]:
         assert (rest[col] == 0).all() and not rest[col].map(lambda x: math.copysign(1, x) < 0).any()
 
 
