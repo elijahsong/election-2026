@@ -1,0 +1,43 @@
+year,race_id,chamber,race_type,dem_candidate,gop_candidate,incumbent,margin_model,margin_adjustment,margin,actual,p_dem,p_gop,p_other,winner_party,treatment,predicted_winner_party,party_probability,rating,called_right,dem_2p_norm,gop_2p_norm,error (D+),kalshi_p_dem,dem_won,model_minus_kalshi
+2024,AK-AL,House,dr_rcv,Mary Sattler Peltola,Nick Begich,D,1.758245,2.5,4.258245,-1.046565,0.7619,0.2381,0.0,R,simulated,D,0.7619,Likely D,False,52.129122,47.870878,-5.30481,0.527638,False,0.234262
+2024,AZ-01,House,dr,Amish Shah,David Schweikert,R,-3.146586,0.0,-3.146586,-3.814004,0.2962,0.7038,0.0,R,simulated,R,0.7038,Lean R,True,48.426707,51.573293,-0.667418,0.37,False,-0.0738
+2024,AZ-06,House,dr,Kirsten Engel,Juan Ciscomani,R,-4.613301,0.0,-4.613301,-2.574399,0.216425,0.783575,0.0,R,simulated,R,0.783575,Likely R,True,47.693349,52.306651,2.038903,0.39801,False,-0.181585
+2024,CA-13,House,dr,Adam Gray,John S. Duarte,R,7.028272,0.0,7.028272,0.088659,0.8784,0.1216,0.0,D,simulated,D,0.8784,Likely D,True,53.514136,46.485864,-6.939614,0.613065,True,0.265335
+2024,CA-22,House,dr,Rudy Salas,David G. Valadao,R,6.959412,0.0,6.959412,-6.842102,0.87575,0.12425,0.0,R,simulated,D,0.87575,Likely D,False,53.479706,46.520294,-13.801514,0.552764,False,0.322986
+2024,CA-27,House,dr,George Whitesides,Mike Garcia,R,4.849885,0.0,4.849885,2.662535,0.792625,0.207375,0.0,D,simulated,D,0.792625,Likely D,True,52.424942,47.575058,-2.18735,0.522613,True,0.270012
+2024,CA-41,House,dr,Will Rollins,Ken Calvert,R,-2.762779,0.0,-2.762779,-3.381907,0.322375,0.677625,0.0,R,simulated,R,0.677625,Lean R,True,48.618611,51.381389,-0.619128,0.45,False,-0.127625
+2024,CA-45,House,dr,Derek Tran,Michelle Steel,R,3.030594,0.0,3.030594,0.206727,0.695075,0.304925,0.0,D,simulated,D,0.695075,Lean D,True,51.515297,48.484703,-2.823866,0.51,True,0.185075
+2024,CO-08,House,dr,Yadira Caraveo,Gabe Evans,D,2.868883,0.0,2.868883,-0.755419,0.68785,0.31215,0.0,R,simulated,D,0.68785,Lean D,False,51.434441,48.565559,-3.624302,0.66,False,0.02785
+2024,IA-01,House,dr,Christina Bohannan,Mariannette Miller-Meeks,R,-6.366564,0.0,-6.366564,-0.19341,0.1474,0.8526,0.0,R,simulated,R,0.8526,Likely R,True,46.816718,53.183282,6.173153,0.60199,False,-0.45459
+2024,IA-03,House,dr,Lanon Baccam,Zachary Nunn,R,-4.699627,0.0,-4.699627,-3.833785,0.212775,0.787225,0.0,R,simulated,R,0.787225,Likely R,True,47.650186,52.349814,0.865842,0.58209,False,-0.369315
+2024,ME-02,House,dr_rcv,Jared F. Golden,Austin Theriault,D,-0.775355,0.0,-0.775355,0.691018,0.447825,0.552175,0.0,D,simulated,R,0.552175,Toss-up,False,49.612322,50.387678,1.466374,0.676768,True,-0.228943
+2024,MI-07,House,dr,Curtis Hertel,Tom Barrett,open,-0.599116,0.0,-0.599116,-3.838729,0.459325,0.540675,0.0,R,simulated,R,0.540675,Toss-up,True,49.700442,50.299558,-3.239613,0.292079,False,0.167246
+2024,MI-08,House,dr,Kristen Mcdonald Rivet,Paul Junge,open,2.965298,0.0,2.965298,6.925397,0.695475,0.304525,0.0,D,simulated,D,0.695475,Lean D,True,51.482649,48.517351,3.960099,0.637755,True,0.05772
+2024,NC-01,House,dr,Donald G. Davis,Laurie Buckhout,D,3.449916,0.0,3.449916,1.72146,0.721975,0.278025,0.0,D,simulated,D,0.721975,Lean D,True,51.724958,48.275042,-1.728456,0.83,True,-0.108025
+2024,NE-02,House,dr,Tony Vargas,Don Bacon,R,-1.89802,0.0,-1.89802,-1.853023,0.37655,0.62345,0.0,R,simulated,R,0.62345,Lean R,True,49.05099,50.94901,0.044996,0.751244,False,-0.374694
+2024,NY-04,House,dr,Laura A. Gillen,Anthony D’Esposito,R,7.755205,0.0,7.755205,2.294641,0.897725,0.102275,0.0,D,simulated,D,0.897725,Likely D,True,53.877603,46.122397,-5.460564,0.78,True,0.117725
+2024,NY-19,House,dr,Josh Riley,Marcus J. Molinaro,R,1.024439,0.0,1.024439,2.217081,0.570575,0.429425,0.0,D,simulated,D,0.570575,Toss-up,True,50.51222,49.48778,1.192642,0.577114,True,-0.006539
+2024,OR-05,House,dr,Janelle S. Bynum,Lori Chavez-Deremer,R,1.000497,0.0,1.000497,2.943906,0.567975,0.432025,0.0,D,simulated,D,0.567975,Toss-up,True,50.500248,49.499752,1.943409,0.44,True,0.127975
+2024,PA-07,House,dr,Susan Wild,Ryan E. Mackenzie,D,1.331323,0.0,1.331323,-1.007156,0.59285,0.40715,0.0,R,simulated,D,0.59285,Toss-up,False,50.665662,49.334338,-2.338479,0.755,False,-0.16215
+2024,PA-08,House,dr,Matt Cartwright,"Rob Bresnahan, Jr.",D,-0.218331,0.0,-0.218331,-1.623584,0.483925,0.516075,0.0,R,simulated,R,0.516075,Toss-up,True,49.890834,50.109166,-1.405253,0.708543,False,-0.224618
+2024,PA-10,House,dr,Janelle Stelson,Scott Perry,R,-9.9522,0.0,-9.9522,-1.264283,0.057375,0.942625,0.0,R,simulated,R,0.942625,Likely R,True,45.0239,54.9761,8.687917,0.437186,False,-0.379811
+2024,VA-07,House,dr,Eugene S. Vindman,Derrick M. Anderson,open,4.736145,0.0,4.736145,2.647514,0.78715,0.21285,0.0,D,simulated,D,0.78715,Likely D,True,52.368073,47.631927,-2.088631,0.773869,True,0.013281
+2024,WA-03,House,dr,Marie Gluesenkamp Perez,Joe Kent,D,-0.456466,0.0,-0.456466,3.892273,0.46715,0.53285,0.0,D,simulated,R,0.53285,Toss-up,False,49.771767,50.228233,4.348739,0.517413,True,-0.050263
+2024,AZ-SEN,Senate,polled,Ruben Gallego,Kari Lake,open,2.427986,0.0,2.427986,2.462458,0.652125,0.347875,0.0,D,simulated,D,0.652125,Lean D,True,51.213993,48.786007,0.034472,0.706468,True,-0.054343
+2024,FL-SEN,Senate,polled,Debbie Mucarsel-Powell,Rick Scott,R,-5.717956,0.0,-5.717956,-12.991751,0.1821,0.8179,0.0,R,simulated,R,0.8179,Likely R,True,47.141022,52.858978,-7.273795,0.11,False,0.0721
+2024,IN-SEN,Senate,unpolled,Valerie Mccray,Jim Banks,open,-22.8244,0.0,-22.8244,-20.401222,0.00395,0.99605,0.0,R,simulated,R,0.99605,Safe R,True,38.5878,61.4122,2.423177,0.049505,False,-0.045555
+2024,MD-SEN,Senate,polled,Angela Alsobrooks,Larry Hogan,open,18.536814,0.0,18.536814,12.10652,0.9911,0.0089,0.0,D,simulated,D,0.9911,Safe D,True,59.268407,40.731593,-6.430294,0.939698,True,0.051402
+2024,MI-SEN,Senate,polled,Elissa Slotkin,Mike Rogers,open,2.220021,0.0,2.220021,0.351549,0.638075,0.361925,0.0,D,simulated,D,0.638075,Lean D,True,51.11001,48.88999,-1.868472,0.776119,True,-0.138044
+2024,MO-SEN,Senate,unpolled,Lucas Kunce,Josh Hawley,R,-24.015587,0.0,-24.015587,-14.096355,0.002775,0.997225,0.0,R,simulated,R,0.997225,Safe R,True,37.992207,62.007793,9.919231,0.084158,False,-0.081383
+2024,MS-SEN,Senate,unpolled,Ty Pinkins,Roger F. Wicker,R,-24.305161,0.0,-24.305161,-25.624382,0.003,0.997,0.0,R,simulated,R,0.997,Safe R,True,37.847419,62.152581,-1.319221,0.035,False,-0.032
+2024,MT-SEN,Senate,polled,Jon Tester,Tim Sheehy,D,-11.417741,0.0,-11.417741,-7.278179,0.047525,0.952475,0.0,R,simulated,R,0.952475,Safe R,True,44.291129,55.708871,4.139562,0.18593,False,-0.138405
+2024,ND-SEN,Senate,unpolled,Katrina Christiansen,Kevin Cramer,R,-36.034829,0.0,-36.034829,-33.033199,0.00035,0.99965,0.0,R,simulated,R,0.99965,Safe R,True,31.982586,68.017414,3.001629,0.04,False,-0.03965
+2024,NE-SEN-S,Senate,unpolled,Preston Love Jr.,Pete Ricketts,open,-25.407987,0.0,-25.407987,-25.155053,0.0022,0.9978,0.0,R,simulated,R,0.9978,Safe R,True,37.296006,62.703994,0.252935,0.025,False,-0.0228
+2024,NV-SEN,Senate,polled,Jacky S. Rosen,Sam Brown,D,4.839554,0.0,4.839554,1.745745,0.778125,0.221875,0.0,D,simulated,D,0.778125,Likely D,True,52.419777,47.580223,-3.093809,0.805,True,-0.026875
+2024,OH-SEN,Senate,polled,Sherrod Brown,Bernie Moreno,D,-3.165415,0.0,-3.165415,-3.747668,0.304625,0.695375,0.0,R,simulated,R,0.695375,Lean R,True,48.417293,51.582707,-0.582254,0.38,False,-0.075375
+2024,PA-SEN,Senate,polled,Robert P Casey Jr,Dave Mccormick,D,2.529166,0.0,2.529166,-0.222821,0.659275,0.340725,0.0,R,simulated,D,0.659275,Lean D,False,51.264583,48.735417,-2.751987,0.728643,False,-0.069368
+2024,TN-SEN,Senate,unpolled,Gloria Johnson,Marsha Blackburn,R,-28.989522,0.0,-28.989522,-30.251877,0.0012,0.9988,0.0,R,simulated,R,0.9988,Safe R,True,35.505239,64.494761,-1.262354,0.025,False,-0.0238
+2024,TX-SEN,Senate,polled,Colin Allred,Ted Cruz,R,-7.108069,0.0,-7.108069,-8.705252,0.136175,0.863825,0.0,R,simulated,R,0.863825,Likely R,True,46.445965,53.554035,-1.597183,0.205,False,-0.068825
+2024,UT-SEN,Senate,unpolled,Caroline Gleich,John Curtis,open,-25.90088,0.0,-25.90088,-32.640669,0.0018,0.9982,0.0,R,simulated,R,0.9982,Safe R,True,37.04956,62.95044,-6.739789,0.03,False,-0.0282
+2024,WI-SEN,Senate,polled,Tammy Baldwin,Eric Hovde,D,1.78452,0.0,1.78452,0.867741,0.614925,0.385075,0.0,D,simulated,D,0.614925,Lean D,True,50.89226,49.10774,-0.916779,0.73,True,-0.115075
+2024,WY-SEN,Senate,unpolled,Scott D Morrow,John Barrasso,R,-42.869392,0.0,-42.869392,-51.380343,0.00025,0.99975,0.0,R,simulated,R,0.99975,Safe R,True,28.565304,71.434696,-8.510951,0.03,False,-0.02975

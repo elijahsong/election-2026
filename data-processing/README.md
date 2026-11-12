@@ -128,10 +128,12 @@ from Wikipedia: "2026 United States House of Representatives elections" and "202
 
 ```bash
 python data-processing/fec_api_totals.py    # once; cached in data/raw/fec_candidate_summaries/api/
-python data-processing/fec_finance.py       # after nominees_2026.py
+python data-processing/fec_pre_general.py   # once (FEC_API_KEY); cached in data/raw/fec_pre_general/
+python data-processing/fec_finance.py       # after nominees_2026.py and fec_pre_general.py
 ```
 
-One row per general-election race, with each major party's nominee and that nominee's FEC cycle totals.
+One row per general-election race, with each major party's nominee and that nominee's FEC totals **as of the
+pre-general report**: only what was public before Election Day.
 `house_targets.py` and `incumbency.py` are reused read-only, and no other file is changed.
 
 | File | Key | Contents |
@@ -144,9 +146,31 @@ One row per general-election race, with each major party's nominee and that nomi
 Per-party fields:
 
 - **Identity:** `name`, `candidate_id`, `match_status`, `fec_missing`, `candidate_count` (the party's general-election
-  candidates) and `fec_file`.
+  candidates), `fec_file`, and `fec_timing` (which report the amounts are as of, below).
 - **Finance:** `receipts`, `disbursements`, `individual_contributions`, `individual_unitemized_contributions`,
   `individual_itemized_contributions`, `cash_on_hand`, `debt`, `coverage_start_date`, `coverage_end_date`.
+
+**No post-election money (`fec_pre_general.py`).** The candidate summary files run through December 31 of the election
+year for 2006–2024, so their totals include money raised and spent after the election (2026's run through
+mid-October 2026). Each matched nominee's finance fields are replaced by their two-year amounts as of their
+pre-general report:
+- **The report:** the 12G, covering through about 20 days before the election and filed before it. Without one, the
+  October quarterly (Q3, through September 30). This is the same window as 2026's summary.
+- **The amount:** Form 3's Column B, election-cycle-to-date; a cycle runs from the seat's previous general election.
+  - **House:** about two years, so the amount is the cycle-to-date as filed (previous November through the report),
+    defined the same way in every year, 2026 included.
+  - **Senate:** six years, so the committee's cycle-to-date at December 31 two years earlier is subtracted, leaving
+    the last two years.
+- **Cash and debt:** as of the report.
+- **`fec_timing`:** `pre_general_12G`, `pre_general_Q3`, or `candidate_summary` (no pre-general report found). The last
+  is a look-ahead before 2026, and the run reports how many are left.
+- **`cycle_receipts`:** keeps the summary's receipts, for the cross-check against webl.
+- **Example:** Fitzpatrick (PA-1) 2022 had $4.29M through Oct 19 against the summary's $4.56M.
+
+Sources: FEC's candidate-committee linkage files (`ccl{yy}.zip`; principal campaign committees) and the FEC API's
+`/v1/reports/house-senate/` pages (12G of each cycle; Q3 per committee where needed; the Senate committees' year-end
+report two years back), all cached in
+`data/raw/fec_pre_general/` with `SOURCE.json`; rerunning reads the cache.
 
 Features:
 - `fundraising_advantage = log1p(dem_receipts) − log1p(gop_receipts)`.
@@ -309,7 +333,114 @@ Candidate summary records are tried before webl-only ones. Nothing is matched on
   - None is left unresolved.
 - **2006 Republicans:** about 11% of 2006 R nominees (44, mostly in safe D seats) have no `webl06` record.
 
-# CPI-U and gasoline prices (`cpi_gas.py`)
+# Split Ticket Wins Above Replacement (`split_ticket_war.py`)
+
+```bash
+python data-processing/split_ticket_war.py    # after fec_finance.py
+```
+
+| Output | Key | Contents |
+|---|---|---|
+| `data/processed/split_ticket_war.csv` | `year, chamber, geography` (`state, district` House; `state, class` Senate) | `war_label`, `war_dem` (D positive), WAR's two names, our nominees' names, FEC IDs and `person_id`s, name-match quality, `dem_slot`, `off_cycle`, `dem_usable`, `gop_usable` |
+| `data/processed/split_ticket_war_people.csv` | `candidate_id` | FEC IDs of one person (re-registrations), each with its group's `person_id` |
+| `data/interim/split_ticket_war_review.csv` | — | every unusable side, accepted surname-only / fuzzy / hand-checked name match, ID link, name change, party change and House district change |
+| `data/processed/house/war_f.csv` | `year, state, district` (2006–2026) | `war_lag`, `war_lag_available`: House Stage 1's lagged WAR, joined into `modeling.csv` by `house/house_features.py` |
+
+**Production use (since 2026-11-03):** House Model A includes `war_lag` (`src/house/stage1.py`), so run this script
+before `house/house_features.py`. The Senate doesn't use WAR. The lag (`src/congress/war.py`) is 0.75 / 0.25 of the
+two most recent earlier House WAR years in which either nominee was the D or R nominee, centered by chamber-year and
+D positive. A race with none gets the neutral 0 (`war_lag_available` False), so no district is dropped. The evidence
+is in `notebooks/house/stage1/01_reg_war.ipynb` and `notebooks/senate/stage1/04_reg_war.ipynb`.
+
+## Source
+
+`data/raw/split-ticket-war/data-Eq.csv`, sha256 `b9fbac80866a324feecec80df4fd35f61726d72e6122f024dbc5331213693c86`
+(pinned; the script refuses another file). It is Split Ticket's
+[Full WAR Database](https://split-ticket.org/full-wins-above-replacement-war-database/) ("last refresh May 3, 2026"):
+2,527 races, House and Senate, 2014–2024, one row per race with columns `Year, Chamber, Geography, Democrat,
+Republican, WAR, Sortable`. The site shows no license or terms of use. The page embeds the table and links no file,
+so the file's provenance rests on the download itself.
+
+## What WAR measures (Split Ticket's own description)
+
+- **A residual.** "WAR is basically the result of a regression model that predicts the difference between the
+  congressional margin and the presidential margin … The difference between the actual performance gap and what is
+  predicted … is called … Wins Above Replacement"
+  ([Deconstructing WAR](https://split-ticket.org/2025/08/15/deconstructing-war/), August 2025).
+- **The controls.** The baseline is built "by controlling for seat partisanship, incumbency, demographics, and money"
+  ([2024 models](https://split-ticket.org/2025/01/15/our-2024-wins-above-replacement-war-models/)).
+  - Incumbency: "in 2024, its impact was 3%."
+  - Partisanship: the two previous presidential margins and the swings to the current one.
+  - Spending: a ratio, set to 0 when both sides spent above or below $1.5M.
+  - Demographics: white college and nonwhite shares.
+  - The Senate baseline is trained on the cycle's House races.
+- **A property of the race.** "WAR in any given cycle is evaluated for all two-way races"; it measures "the candidate
+  quality differential on a per-seat basis"
+  ([2022 House](https://split-ticket.org/2022/12/30/our-2022-house-wins-above-replacement-model/)). One number per race
+  covers both candidates.
+- **Persistence.** "Incumbents tended to keep roughly half of their overperformance from the previous cycle"
+  (2024 models).
+
+## Conventions and checks
+
+- **Sign.** `"D+3"`: the Democrat ran 3 points of margin ahead of the baseline. `war_dem` = +3 for `"D+3"` and −3
+  for `"R+3"`. It equals −`Sortable` exactly (checked). Verified on known cases:
+  - Kaptur vs Majewski, OH-9 2022: D+15.6.
+  - Peltola vs Palin, AK 2022: D+22.1.
+  - Bacon, NE-2 2022: R+3.
+  - Collins, ME 2020: R+12.5.
+- **Net of incumbency, not of all money** (`01_reg_war.ipynb`, section 1).
+  - House WAR averages 0 within each year (|mean| ≤ 0.23), consistent with a per-cycle fit.
+  - Its coefficient on our signed incumbency is near 0, except about +1 in 2018 and 2020.
+  - It still rises with our `fundraising_advantage`, by 0.75–1.9 points per log unit.
+- **Senate offset.** Senate WAR averages D+1.3 to D+3.4 in every cycle, from the House-trained baseline.
+  `src/congress/war.py` centers WAR by chamber-year before lagging. For the House that changes nothing material.
+
+## Matching
+
+- **Races.**
+  - House: `ST-NN` / `ST-AL` (district 0).
+  - Senate: a state name, with `Special` / `Spec` marking a special; the class comes from `senate_fec.csv`'s
+    `(year, state, special)`. Two specials that were their state's only race have no label (AZ 2020, HI 2014).
+  - `OFF_CYCLE`: AL "2018" is the December 2017 Jones–Moore special, not in our races, so it is never usable.
+- **Nominees.**
+  - The race's D and R slots in `house_fec.csv` / `senate_fec.csv` (FEC candidate IDs), each verified by name with
+    `fec_finance.match_name`.
+  - 79 surname-only or fuzzy matches (nicknames and misspellings in the same race and party slot) are accepted and
+    listed in the review file.
+  - `NAME_OVERRIDES` holds 7 hand-checked pairs.
+- **Per-side usability.** A side is usable when its name is verified, it has an FEC ID, and the race is D vs R. Two
+  common cases:
+  - An incumbent keeps a race whose opponent filed no FEC report (Anthony Brown, Steve Cohen).
+  - A Republican keeps a Louisiana jungle race that WAR scored against "Various Democrats", but that race's Democrat
+    is unusable.
+- **Not usable on either side:** races where WAR's "Democrat" is an independent or third-party candidate and we have
+  no Democrat: Orman (KS 2014), Harrington (AR 2020), Mund (ND-AL 2022), McMullin (UT 2022) and Osborn (NE 2024).
+  King, Sanders, Galvin and Gross fill our D slot and are usable.
+- **People.**
+  - `person_id` is the FEC ID, except where IDs belong to one person. Such IDs share a chamber, state, surname and
+    first name in the nominee slots from 2006 to 2026, and one of them has a usable WAR race. This links 113 IDs of
+    56 people (e.g. Max Rose, NY-11 2018–2020 and 2022) and covers 2026 nominees who re-registered (Rebecca Cooke,
+    Elaine Luria, Charles Booker).
+  - Every group was checked by hand. `DISTINCT_PEOPLE` keeps three apart: Donald Payne Sr. and Jr., Duncan Hunter
+    Sr. and Jr., and two James O'Donnells.
+  - Reviewed, no change needed:
+    - nine surname changes under one ID (spellings, Watson Coleman, Dean Cunnane);
+    - one party switcher, Van Drew (NJ-2: D in 2018, R since; his lag flips sign);
+    - 125 House district changes (redistricting).
+- **Coverage (usable sides).**
+  - House: 355–405 D sides and 355–404 R sides per year.
+  - Senate: 30–34 per year on each side.
+
+## Limits on out-of-sample use (read before trusting a backtest)
+
+- **One vintage, revised with hindsight.** Split Ticket recomputed 2018–2022 in January 2025 with its 2024 method; for
+  example, NY-17 2022 was R+2.7 in the December 2022 release and is R+1.7 here. Each cycle's baseline appears to be fit
+  on that cycle alone (mean 0 within year), so no later election's *results* should be in an earlier year's WAR, but
+  the *method* was chosen after 2024. No earlier vintage is downloadable.
+- **Not available in real time.** 2014–2020 WAR was published after the elections it would have helped forecast. The
+  2014 rows are in this file but on no page of the site, which lists 2016–2024.
+- **Short history.** The first lag is for 2016. Senate races in 2018 (class I, last elected in 2012) have none.
 
 ```bash
 python data-processing/cpi_gas.py           # -> data/processed/cpi_gas_monthly.csv, data/processed/cpi_gas_region.csv

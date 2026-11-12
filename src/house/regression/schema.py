@@ -73,6 +73,11 @@ COLUMNS = {c.name: c for c in [
                        "or a source share outside [0, 1]"),
     Column("dem_fec_missing", "bool", "metadata", "fec_f", description="no FEC record (or no D nominee): amounts are 0"),
     Column("gop_fec_missing", "bool", "metadata", "fec_f", description="no FEC record (or no R nominee): amounts are 0"),
+    # war_f.csv (data-processing/split_ticket_war.py, via src/congress/war.py): Model A's lagged Split Ticket WAR
+    Column("war_lag", "numeric", "predictor", "war_f",
+           description="D positive: 0.75 / 0.25 of the nominees' two most recent earlier House WAR years (centered); "
+                       "the neutral 0 where neither nominee has one (war_lag_available False)"),
+    Column("war_lag_available", "bool", "metadata", "war_f", description="war_lag comes from an earlier WAR race"),
     # prices_f.csv (data-processing/cpi_gas.py: the state's Census region, from the last month public before Election
     # Day, September; percent changes on a 0-100 scale)
     Column("census_region", "str", "metadata", "prices_f", pattern="northeast|midwest|south|west"),
@@ -137,7 +142,7 @@ COLUMNS = {c.name: c for c in [
 
 # tranche -> its registered predictors, for building feature sets in config.py
 TRANCHES = {t: [c.name for c in COLUMNS.values() if c.tranche == t and c.role == "predictor"]
-            for t in ["basic_f", "acs_f", "fec_f", "prices_f", "nat_political_f"]}
+            for t in ["basic_f", "acs_f", "fec_f", "prices_f", "war_f", "nat_political_f"]}
 
 # data/processed/house/targets.csv (and targets_raw.csv, all years), in file order: TARGET_COLUMNS, then provenance.
 # Check it with validate_schema(df, schema=TARGETS_SCHEMA).

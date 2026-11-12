@@ -1,24 +1,25 @@
-"""Fill the full congress-track template with the House and Senate 2026 forecasts.
+"""Merge, validate and write the congress-track submission from the House and Senate 2026 track rows.
+
+Called from the production entry point, notebooks/full-forecast/full_forecast_2026.ipynb:
+
+    import congress_track
+    congress_track.write_submission({"House": house_rows, "Senate": senate_rows})
 
 Inputs
   data/reference/full congress track template.csv   race_id, chamber (435 House, 35 Senate rows), blank predictions
-  data/processed/house/congress_track_house_2026.csv   House rows: the H0 simulation on Stage 1's AB 85/15 ensemble
-                                                       (notebooks/house/stage2/02_monte_carlo.ipynb)
-  data/processed/senate/congress_track_senate_2026.csv Senate rows: S-M0 (notebooks/senate/stage2/03_monte_carlo.ipynb)
-  data/reference/track_overrides_2026.csv             manual changes for the submission (apply_overrides)
-Output
-  data/processed/full_congress_track_2026.csv          the template's rows and order, every prediction filled, with
-                                                       the overrides applied
-  data/processed/full congress track template.csv      the same file under the template's name, for submission
+  each chamber's rows                                race_id, chamber, predicted_winner_party, candidate_name,
+                                                     win_probability (house.forecast / senate.forecast track)
+Output (identical files)
+  data/processed/full_congress_track_2026.csv        the template's rows and order, every prediction filled
+  data/processed/full congress track template.csv    the same file under the template's name, for submission
 
-Each chamber's file must cover exactly the template's rows for that chamber, with a party (D, R or I), a candidate
-name and a win probability between 0.5 and 1 (the predicted winner's share of draws). The script refuses to write
-otherwise. It changes no model values; only the rows of the overrides file differ from the chamber files.
+merge refuses to write unless each chamber covers exactly the template's rows for that chamber, once each, with a
+party (D, R or I), a candidate name and a win probability between 0.5 and 1. write_submission rounds probabilities to
+6 decimals, so a rerun of the same forecast writes byte-identical files.
 
-Overrides (apply_overrides): each row names a race, the submitted party, candidate and probability, the model's
-values it replaces (model_party, model_candidate, model_probability), and a reason. An override whose model values
-no longer match the current forecast is stale and stops the script, so a re-run model never silently keeps an old
-manual change. The chamber files (the model's own forecasts) are never edited.
+Manual judgment enters before the simulation, as margin adjustments (src/congress/adjustments.py), never here: this
+module changes no value. The earlier probability overrides (data/reference/track_overrides_2026.csv) are retired and
+no longer applied.
 """
 
 from pathlib import Path
@@ -27,14 +28,10 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_PATH = ROOT / "data/reference/full congress track template.csv"
-CHAMBER_PATHS = {
-    "House": ROOT / "data/processed/house/congress_track_house_2026.csv",
-    "Senate": ROOT / "data/processed/senate/congress_track_senate_2026.csv",
-}
-OVERRIDES_PATH = ROOT / "data/reference/track_overrides_2026.csv"
 OUTPUT_PATH = ROOT / "data/processed/full_congress_track_2026.csv"
 SUBMISSION_PATH = ROOT / "data/processed/full congress track template.csv"  # the template's name; never the input
 COLUMNS = ["race_id", "chamber", "predicted_winner_party", "candidate_name", "win_probability"]
+PROBABILITY_DECIMALS = 6
 
 
 def merge(template: pd.DataFrame, chambers: dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -60,35 +57,13 @@ def merge(template: pd.DataFrame, chambers: dict[str, pd.DataFrame]) -> pd.DataF
     return out
 
 
-def apply_overrides(track: pd.DataFrame, overrides: pd.DataFrame) -> pd.DataFrame:
-    """track with each override's party, candidate and probability, after checking its model values are current."""
-    out = track.set_index("race_id")
-    for row in overrides.itertuples(index=False):
-        current = out.loc[row.race_id]
-        if (current["chamber"], current["predicted_winner_party"], current["candidate_name"]) != \
-                (row.chamber, row.model_party, row.model_candidate) or \
-                abs(current["win_probability"] - row.model_probability) > 1e-6:
-            raise ValueError(f"Stale override for {row.race_id}: the model now says "
-                             f"{current[['predicted_winner_party', 'candidate_name', 'win_probability']].tolist()}")
-        if row.predicted_winner_party not in ("D", "R", "I") or not 0.5 <= row.win_probability <= 1:
-            raise ValueError(f"Override for {row.race_id}: invalid party or probability")
-        out.loc[row.race_id, COLUMNS[2:]] = [row.predicted_winner_party, row.candidate_name, row.win_probability]
-    return out.reset_index()[COLUMNS]
-
-
-def main() -> None:
-    template = pd.read_csv(TEMPLATE_PATH)
-    model = merge(template, {chamber: pd.read_csv(path) for chamber, path in CHAMBER_PATHS.items()})
-    overrides = pd.read_csv(OVERRIDES_PATH)
-    out = apply_overrides(model, overrides)
-    print(f"{len(overrides)} overrides: " + "; ".join(
-        f"{r.race_id} {r.model_party} {r.model_probability:.3f} -> {r.predicted_winner_party} {r.candidate_name} "
-        f"{r.win_probability:.3f}" for r in overrides.itertuples()))
-    for path in (OUTPUT_PATH, SUBMISSION_PATH):
+def write_submission(chambers: dict[str, pd.DataFrame], template: pd.DataFrame | None = None,
+                     paths=(OUTPUT_PATH, SUBMISSION_PATH)) -> pd.DataFrame:
+    """merge the chambers' rows into the template (read from TEMPLATE_PATH unless given), round the probabilities,
+    write each of `paths`, and return the submission."""
+    template = pd.read_csv(TEMPLATE_PATH) if template is None else template
+    out = merge(template, chambers)
+    out["win_probability"] = out["win_probability"].round(PROBABILITY_DECIMALS)
+    for path in paths:
         out.to_csv(path, index=False)
-        print(f"-> {path} ({len(out)} rows)")
-    print(out.groupby(["chamber", "predicted_winner_party"]).size().unstack(fill_value=0))
-
-
-if __name__ == "__main__":
-    main()
+    return out

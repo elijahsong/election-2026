@@ -11,8 +11,10 @@ prices_f.csv         year, state, district: census_region, price_data_month and 
                      district's Census region, from data/processed/cpi_gas_region.csv (data-processing/cpi_gas.py),
                      then the state's unemployment features, from data/processed/unemployment_state.csv
                      (data-processing/unemployment.py)
-modeling.csv         basic_f, acs_f, fec_f and prices_f joined on year, state, district, then nat_political_f joined
-                     on year
+war_f.csv            year, state, district: war_lag and war_lag_available, Model A's lagged Split Ticket WAR, written
+                     by data-processing/split_ticket_war.py (run it first); read here, not rebuilt
+modeling.csv         basic_f, acs_f, fec_f, prices_f and war_f joined on year, state, district, then nat_political_f
+                     joined on year
 
 District-level tables must have unique keys and exactly the same key set, and no column may appear in two of them.
 A year with no generic-ballot row keeps blank generic-ballot fields; nothing is filled in. (2026's row is a single
@@ -39,6 +41,7 @@ ACS_PATH = ROOT / "data/interim/house/acs_supplement.csv"
 FEC_PATH = ROOT / "data/processed/house_fec.csv"
 PRICES_PATH = ROOT / "data/processed/cpi_gas_region.csv"
 UNEMPLOYMENT_PATH = ROOT / "data/processed/unemployment_state.csv"
+WAR_F_PATH = ROOT / "data/processed/house/war_f.csv"  # data-processing/split_ticket_war.py
 OUTPUT_DIR = ROOT / "data/processed/house"
 
 KEY = ["year", "state", "district"]
@@ -123,8 +126,9 @@ def fec_features(fec: pd.DataFrame, key: list[str] = KEY, known_gaps: list[tuple
 
 
 def modeling_table(basic: pd.DataFrame, acs_f: pd.DataFrame, fec_f: pd.DataFrame, prices_f: pd.DataFrame,
-                   nat: pd.DataFrame) -> pd.DataFrame:
-    return add_national(join_districts({"basic_f": basic, "acs_f": acs_f, "fec_f": fec_f, "prices_f": prices_f}), nat)
+                   war_f: pd.DataFrame, nat: pd.DataFrame) -> pd.DataFrame:
+    return add_national(join_districts({"basic_f": basic, "acs_f": acs_f, "fec_f": fec_f, "prices_f": prices_f,
+                                        "war_f": war_f}), nat)
 
 
 def main() -> None:
@@ -139,7 +143,8 @@ def main() -> None:
     fec_f = fec_features(pd.read_csv(FEC_PATH))
     prices_f = unemployment.attach_states(cpi_gas.attach_regions(basic[KEY], pd.read_csv(PRICES_PATH)),
                                           pd.read_csv(UNEMPLOYMENT_PATH))
-    modeling = modeling_table(basic, acs_f, fec_f, prices_f, nat)
+    war_f = pd.read_csv(WAR_F_PATH)
+    modeling = modeling_table(basic, acs_f, fec_f, prices_f, war_f, nat)
 
     for name, df in [("basic_f", basic), ("nat_political_f", nat), ("acs_f", acs_f), ("fec_f", fec_f),
                      ("prices_f", prices_f), ("modeling", modeling)]:

@@ -1,36 +1,36 @@
 race_id,chamber,predicted_winner_party,candidate_name,win_probability
-AK-SEN,Senate,R,Dan S. Sullivan,0.5465
-AL-SEN,Senate,R,Barry Moore,0.99495
-AR-SEN,Senate,R,Tom Cotton,0.99705
-CO-SEN,Senate,D,John Hickenlooper,0.997
-DE-SEN,Senate,D,Chris Coons,0.99785
-FL-SEN,Senate,R,Ashley Moody,0.84805
-GA-SEN,Senate,D,Jon Ossoff,0.9607
-IA-SEN,Senate,R,Ashley Hinson,0.5847
-ID-SEN,Senate,R,Jim Risch,0.99845
-IL-SEN,Senate,D,Juliana Stratton,0.99485
-KS-SEN,Senate,R,Roger Marshall,0.5363
-KY-SEN,Senate,R,Andy Barr,0.99535
-LA-SEN,Senate,R,Julia Letlow,0.9642
-MA-SEN,Senate,D,Ed Markey,0.99925
-ME-SEN,Senate,D,Troy Jackson,0.92145
-MI-SEN,Senate,D,Abdul El-Sayed,0.89895
-MN-SEN,Senate,D,Peggy Flanagan,0.95665
-MS-SEN,Senate,R,Cindy Hyde-Smith,0.96885
-MT-SEN,Senate,R,Kurt Alme,0.9837
-NC-SEN,Senate,D,Roy Cooper,0.95445
-NE-SEN,Senate,R,Pete Ricketts,0.882
-NH-SEN,Senate,D,Chris Pappas,0.9626
-NJ-SEN,Senate,D,Cory Booker,0.99485
-NM-SEN,Senate,D,Ben Ray Luján,0.9929
-OH-SEN,Senate,D,Sherrod Brown,0.62545
-OK-SEN,Senate,R,Kevin Hern,0.99735
-OR-SEN,Senate,D,Jeff Merkley,0.9971
-RI-SEN,Senate,D,Jack Reed,0.9971
-SC-SEN,Senate,R,Darline Graham,0.90125
-SD-SEN,Senate,R,Mike Rounds,0.99825
-TN-SEN,Senate,R,Bill Hagerty,0.9951
-TX-SEN,Senate,D,James Talarico,0.6202
-VA-SEN,Senate,D,Mark Warner,0.9937
-WV-SEN,Senate,R,Shelley Moore Capito,0.9983
-WY-SEN,Senate,R,Harriet Hageman,0.9992
+AK-SEN,Senate,R,Dan S. Sullivan,0.547175
+AL-SEN,Senate,R,Barry Moore,0.995025
+AR-SEN,Senate,R,Tom Cotton,0.9965
+CO-SEN,Senate,D,John Hickenlooper,0.99595
+DE-SEN,Senate,D,Chris Coons,0.997175
+FL-SEN,Senate,R,Ashley Moody,0.845375
+GA-SEN,Senate,D,Jon Ossoff,0.9597
+IA-SEN,Senate,R,Ashley Hinson,0.584075
+ID-SEN,Senate,R,Jim Risch,0.9987
+IL-SEN,Senate,D,Juliana Stratton,0.995125
+KS-SEN,Senate,R,Roger Marshall,0.54315
+KY-SEN,Senate,R,Andy Barr,0.994775
+LA-SEN,Senate,R,Julia Letlow,0.9637
+MA-SEN,Senate,D,Ed Markey,0.999125
+ME-SEN,Senate,D,Troy Jackson,0.92325
+MI-SEN,Senate,D,Abdul El-Sayed,0.895725
+MN-SEN,Senate,D,Peggy Flanagan,0.9581
+MS-SEN,Senate,R,Cindy Hyde-Smith,0.970375
+MT-SEN,Senate,R,Kurt Alme,0.98195
+NC-SEN,Senate,D,Roy Cooper,0.95625
+NE-SEN,Senate,R,Pete Ricketts,0.8818
+NH-SEN,Senate,D,Chris Pappas,0.964725
+NJ-SEN,Senate,D,Cory Booker,0.99435
+NM-SEN,Senate,D,Ben Ray Luján,0.99445
+OH-SEN,Senate,D,Sherrod Brown,0.6276
+OK-SEN,Senate,R,Kevin Hern,0.997075
+OR-SEN,Senate,D,Jeff Merkley,0.997075
+RI-SEN,Senate,D,Jack Reed,0.99775
+SC-SEN,Senate,R,Darline Graham,0.89995
+SD-SEN,Senate,R,Mike Rounds,0.9986
+TN-SEN,Senate,R,Bill Hagerty,0.995225
+TX-SEN,Senate,D,James Talarico,0.6209
+VA-SEN,Senate,D,Mark Warner,0.993525
+WV-SEN,Senate,R,Shelley Moore Capito,0.9988
+WY-SEN,Senate,R,Harriet Hageman,0.99895

@@ -28,14 +28,15 @@ LEVELS = (0.5, 0.8, 0.9, 0.95)
 
 
 def blend_out_of_sample(config=stage1.SENATE_S1, years=range(2016, 2026, 2), data=None, polls=None,
-                        ratings=None) -> pd.DataFrame:
-    """The Stage 2 blend's out-of-sample predictions for `years` (Stage 1 fit on earlier years only), with center
-    (= prediction), competitive_ex_ante and inc_signed."""
+                        ratings=None, weights=stage2.WEIGHTS) -> pd.DataFrame:
+    """The Stage 2 blend's out-of-sample predictions for `years` (Stage 1 fit on earlier years only, blended with
+    `weights`), with center (= prediction), competitive_ex_ante and inc_signed."""
     data = sr.load_data() if data is None else data
     if polls is None or ratings is None:
         polls, ratings = stage2.load_inputs()
     rolling = stage1.rolling_predictions(config, eval_years=list(years), data=data)
-    oos = stage2.blend(pd.concat([r.predictions for r in rolling.values()], ignore_index=True), polls, ratings)
+    oos = stage2.blend(pd.concat([r.predictions for r in rolling.values()], ignore_index=True), polls, ratings,
+                       weights=weights)
     oos = oos.merge(data[[*sr.KEY, "partisan_lean", "gb_margin_2p_norm", "inc_signed"]], on=sr.KEY, how="left",
                     validate="one_to_one")
     oos["competitive_ex_ante"] = (oos["partisan_lean"] + oos["gb_margin_2p_norm"]).abs() <= sr.EX_ANTE_THRESHOLD

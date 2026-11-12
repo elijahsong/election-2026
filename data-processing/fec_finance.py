@@ -13,7 +13,18 @@ FEC sources (data/raw/fec_candidate_summaries; README.md there):
              coverage start date, so those fields are blank for 2006.
   2008-2024  webl{yy}.txt is a fallback for nominees with no candidate summary record (e.g. Spartz, IN-5 2024), and a
              cross-check of receipts. {party}_fec_file records which file a slot's record came from.
-  Each summary covers the two-year cycle, with each candidate's own coverage dates; no common cutoff is imposed.
+  Each summary covers the two-year cycle through December 31 of the election year (2026: through mid-October), so
+  for 2006-2024 it includes money raised and spent after the election.
+
+Pre-election amounts (data/interim/fec_pre_general.csv, fec_pre_general.py): the matched nominee's totals are replaced
+  by their amounts as of their pre-general report (12G, through about 20 days before the election, filed before it),
+  or their October quarterly without one: House, cycle-to-date as filed (since the previous November); Senate, the
+  last two years of its six-year cycle-to-date. coverage_start_date is blank for these. A Senate amount above 105%
+  of the slot's two-year summary total (the six-year cycle wasn't cut to two years: no year-end report), or below 0
+  (the year-end report wasn't on the same basis, e.g. Boxer, CA 2010), falls back to the summary. That was public before Election Day, and it is the same window
+  as 2026's summary. {party}_fec_timing says which: pre_general_12G, pre_general_Q3, or candidate_summary (no
+  pre-general report found; the record's own coverage, after the election for 2006-2024, so a look-ahead that the run
+  reports). {party}_cycle_receipts keeps the summary's receipts for the cross-check against webl.
 
 Nominees (one D and one R slot per race; read-only from the repo's sources):
   House 2006-2024   MEDSL via house_targets (read_source, label_contests, candidates): the November / first round
@@ -86,6 +97,8 @@ TARGETS_RAW_PATH = ROOT / "data/processed/house/targets_raw.csv"
 SENATE_TARGETS_RAW_PATH = ROOT / "data/processed/senate/targets_raw.csv"
 SENATE_INCUMBENCY_PATH = ROOT / "data/interim/senate_incumbency.csv"
 DISTRICT_COUNTS_PATH = ROOT / "data/reference/district_counts.json"
+PRE_GENERAL_PATH = ROOT / "data/interim/fec_pre_general.csv"  # fec_pre_general.py
+SENATE_PRE_GENERAL_TOLERANCE = 1.05  # a Senate pre-general amount above 105% of its two-year summary falls back
 INTERIM_DIR = ROOT / "data/interim"
 PROCESSED_DIR = ROOT / "data/processed"
 
@@ -773,13 +786,50 @@ def read_api_totals(path: Path = API_TOTALS_PATH) -> pd.DataFrame:
     return df.assign(fec_name="FEC API candidate totals", fec_party=None, district=None, fec_file=path.name)[columns]
 
 
-def wide(matched: pd.DataFrame, races: pd.DataFrame, key: list[str]) -> pd.DataFrame:
-    """One row per race: race columns, then each slot's (dem, gop, ind) identifiers, match fields and finance fields,
-    applying the missing-data policy. The ind columns are blank in races without an ind slot."""
+def read_pre_general(path: Path = PRE_GENERAL_PATH) -> pd.DataFrame:
+    """fec_pre_general.py's amounts by (year, candidate_id)."""
+    if not path.exists():
+        raise FileNotFoundError(f"{path} is missing: run data-processing/fec_pre_general.py first")
+    df = pd.read_csv(path, dtype={"candidate_id": str}, parse_dates=["coverage_end_date"])
+    return df.set_index(["year", "candidate_id"])
+
+
+def pre_election(m: pd.DataFrame, pre: pd.DataFrame) -> pd.DataFrame:
+    """m (one slot's matched rows) with its FINANCE fields replaced by the pre-general amounts where the candidate
+    has them, fec_timing saying which, and cycle_receipts keeping the summary's receipts."""
+    m = m.copy()
+    m["cycle_receipts"] = m["receipts"]
+    ids = pd.MultiIndex.from_arrays([m.index.get_level_values("year"), m["candidate_id"]])
+    found = ids.isin(pre.index) & m["candidate_id"].notna().to_numpy()
+    # Senate: two-year money as of the pre-general report can't exceed the full two-year total. Above it (by
+    # SENATE_PRE_GENERAL_TOLERANCE) the six-year cycle wasn't cut to two years (no year-end report found): fall back
+    pre_receipts = pre["receipts"].reindex(ids).to_numpy()
+    senate = m["candidate_id"].fillna("").str.startswith("S").to_numpy()
+    over = senate & ((pre_receipts > SENATE_PRE_GENERAL_TOLERANCE * m["receipts"].astype(float).to_numpy())
+                     | (pre_receipts < 0))  # negative: the year-end report wasn't on the same cycle-to-date basis
+    found &= ~over
+    rows = pre.reindex(ids[found])
+    for field in AMOUNTS:
+        m[field] = m[field].astype(float)
+        m.loc[found, field] = rows[field].to_numpy()
+    m["coverage_start_date"] = pd.to_datetime(m["coverage_start_date"])
+    m["coverage_end_date"] = pd.to_datetime(m["coverage_end_date"])
+    m.loc[found, "coverage_start_date"] = pd.NaT  # cycle-to-date (fec_pre_general.py): the cycle's own start
+    m.loc[found, "coverage_end_date"] = rows["coverage_end_date"].to_numpy()
+    timing = pd.Series(np.where(m["candidate_id"].notna(), "candidate_summary", None), index=m.index, dtype=object)
+    timing[found] = ("pre_general_" + rows["report_type"]).to_numpy()
+    m["fec_timing"] = timing
+    return m
+
+
+def wide(matched: pd.DataFrame, races: pd.DataFrame, key: list[str], pre: pd.DataFrame) -> pd.DataFrame:
+    """One row per race: race columns, then each slot's (dem, gop, ind) identifiers, match fields and finance fields
+    (pre-election, pre_election), applying the missing-data policy. The ind columns are blank in races without an
+    ind slot."""
     out = races.copy()
     zero = {"no_nominee", "no_fec_record", "ambiguous"}
     for slot in SLOT_PARTY:
-        m = matched[matched["slot"] == slot].set_index(key)
+        m = pre_election(matched[matched["slot"] == slot].set_index(key), pre)
         part = pd.DataFrame(index=m.index)
         part["name"] = m["name"]
         part["candidate_id"] = m["candidate_id"]
@@ -789,6 +839,8 @@ def wide(matched: pd.DataFrame, races: pd.DataFrame, key: list[str]) -> pd.DataF
         part["fec_missing"] = m["candidate_id"].isna()
         part["candidate_count"] = m["candidate_count"]
         part["fec_file"] = m["fec_file"]
+        part["fec_timing"] = m["fec_timing"]
+        part["cycle_receipts"] = m["cycle_receipts"].astype(float)
         for field in FINANCE:
             part[field] = m[field]
         for field in AMOUNTS:
@@ -800,7 +852,8 @@ def wide(matched: pd.DataFrame, races: pd.DataFrame, key: list[str]) -> pd.DataF
 
 
 def build_chamber(chamber: str, races: pd.DataFrame, cands: pd.DataFrame, key: list[str], fec: pd.DataFrame,
-                  webl_only: pd.DataFrame, counts_by_year: dict) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+                  webl_only: pd.DataFrame, counts_by_year: dict,
+                  pre: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
     """(interim table, long slot table, review rows) for one chamber."""
     race_keys = pd.MultiIndex.from_frame(races[key])
     cand_keys = pd.MultiIndex.from_frame(cands[key])
@@ -813,7 +866,7 @@ def build_chamber(chamber: str, races: pd.DataFrame, cands: pd.DataFrame, key: l
     slots = resolve_2026_by_incumbent(slots, chamber, fec)
     slots = resolve_2026_by_receipts(slots, chamber, fec)
     matched, review = match_slots(slots, chamber, fec, webl_only, counts_by_year)
-    return wide(matched, races, key), matched, review
+    return wide(matched, races, key, pre), matched, review
 
 
 def house_races(counts_by_year: dict) -> pd.DataFrame:
@@ -942,6 +995,20 @@ def share_report(processed: pd.DataFrame) -> str:
     return "\n".join(out)
 
 
+def timing_report(df: pd.DataFrame) -> str:
+    """Per year, the matched D and R slots by fec_timing, and how much of the summary's receipts the pre-general
+    amounts are (median ratio, slots with both)."""
+    rows = {}
+    for year, g in df.groupby("year"):
+        timing = pd.concat([g[f"{s}_fec_timing"] for s in PARTIES]).value_counts()
+        ratio = pd.concat([g[f"{s}_receipts"] / g[f"{s}_cycle_receipts"].where(g[f"{s}_cycle_receipts"] > 0)
+                           for s in PARTIES])
+        rows[year] = {**timing.to_dict(), "median pre-general / summary receipts": round(ratio.median(), 3)}
+    table = pd.DataFrame.from_dict(rows, orient="index").fillna(0)
+    return "FEC timing of the D and R slots (candidate_summary after 2024 is pre-election; before, a look-ahead):\n" \
+        + table.to_string()
+
+
 def cross_check(df: pd.DataFrame, webl: pd.DataFrame, chamber: str) -> list[str]:
     """Receipts against the webl file for the same ID (2008-2024), and FEC's own general-election flags (2006-2012)."""
     lines = []
@@ -956,7 +1023,7 @@ def cross_check(df: pd.DataFrame, webl: pd.DataFrame, chamber: str) -> list[str]
         in_webl = pd.Series([i in w.index for i in ids], index=m.index)
         both = m[in_webl & (m["year"] != WEBL_ONLY_YEAR)]
         webl_receipts = w.loc[list(zip(both["year"], both[p + "candidate_id"])), "receipts"].to_numpy()
-        differs = int((np.abs(both[p + "receipts"].to_numpy() - webl_receipts) > 1).sum())
+        differs = int((np.abs(both[p + "cycle_receipts"].to_numpy() - webl_receipts) > 1).sum())
         flagged = m[in_webl & (m["year"] <= 2012)]
         gen = w.loc[list(zip(flagged["year"], flagged[p + "candidate_id"])), "gen_election"].to_numpy()
         lines.append(f"{slot}: receipts differ from webl (> $1) for {differs} of {len(both)} matched 2008-2024 records; "
@@ -1013,11 +1080,12 @@ def main() -> None:
         "senate": (senate_races(senate_hist), pd.concat([senate_hist, candidates_2026("senate")], ignore_index=True),
                    ["year", "state", "class"]),
     }
+    pre = read_pre_general()
     review_rows, outputs = [], {}
     for chamber, (races, cands, key) in chambers.items():
         if chamber == "senate":
             cands = cands.drop(columns="special")  # the race list carries it
-        interim, matched, review = build_chamber(chamber, races, cands, key, fec, webl_only, counts_by_year)
+        interim, matched, review = build_chamber(chamber, races, cands, key, fec, webl_only, counts_by_year, pre)
         check_structure(chamber, interim, matched, key, fec, webl_only, chamber)
         processed = add_features(interim)
         if list(processed.columns) != list(interim.columns) + FEATURES or len(processed) != len(interim):
@@ -1032,6 +1100,7 @@ def main() -> None:
         for line in value_report(interim) + cross_check(interim, webl, chamber):
             print(line)
         print(share_report(processed))
+        print(timing_report(interim))
         results = pd.read_csv(TARGETS_RAW_PATH if chamber == "house" else SENATE_TARGETS_RAW_PATH)
         suspects = suspect_records(interim, results, chamber, key)
         print(f"Possibly empty FEC records of nominees who won or finished within {SUSPECT_MARGIN} points "

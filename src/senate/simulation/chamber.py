@@ -47,13 +47,14 @@ INDEPENDENT_RACE_CENTER = "expert ratings only (independent-vs-R heuristic)"
 CONTROL_SCENARIOS = ("new independents with R or neither", "new independents with D")
 
 
-def forecast_points(config=stage1.SENATE_S1, data=None, polls=None, ratings=None) -> pd.DataFrame:
-    """One row per 2026 race: the Stage 2 blend, seat_type (dem_nominee, caucusing_independent or independent_only),
-    center and center_source, and matchup_note."""
+def forecast_points(config=stage1.SENATE_S1, data=None, polls=None, ratings=None,
+                    weights=stage2.WEIGHTS) -> pd.DataFrame:
+    """One row per 2026 race: the Stage 2 blend (with `weights`), seat_type (dem_nominee, caucusing_independent or
+    independent_only), center and center_source, and matchup_note."""
     data = sr.load_data() if data is None else data
     if polls is None or ratings is None:
         polls, ratings = stage2.load_inputs()
-    point = stage2.blend(stage1.forecast(config, YEAR, data=data).predictions, polls, ratings)
+    point = stage2.blend(stage1.forecast(config, YEAR, data=data).predictions, polls, ratings, weights=weights)
     flags = pd.read_csv(stage2.RATINGS_PATH, usecols=[*sr.KEY, "quality_flags"])
     point = point.merge(flags, on=sr.KEY, how="left", validate="one_to_one")
     point = point.merge(data[[*sr.KEY, "inc_signed"]], on=sr.KEY, how="left", validate="one_to_one")
@@ -116,13 +117,18 @@ def simulate_2026(point: pd.DataFrame, sds: dict[str, float], n_sims: int = 20_0
     return sims, count_seats(sims, point)
 
 
-def plot_seat_distribution(counts: pd.DataFrame, ax, title: str = ""):
-    """D-aligned seats, and D-aligned plus new independents, with the 51-seat control line."""
+def plot_seat_distribution(counts: pd.DataFrame, ax, title: str = "", independents_with_dem: bool = False):
+    """D-aligned seats, and D-aligned plus new independents, with the 51-seat control line. independents_with_dem
+    plots only the second, as the Democratic caucus (the new independents assumed to caucus with Democrats)."""
     bins = np.arange(counts["dem_aligned"].min() - 0.5, counts["dem_aligned"].max() + counts["new_independents"].max()
                      + 1.5)
-    ax.hist(counts["dem_aligned"], bins=bins, color="#2a78d6", alpha=0.85, label="D-aligned (D + King, Sanders)")
-    ax.hist(counts["dem_aligned"] + counts["new_independents"], bins=bins, histtype="step", color="#888", lw=1.5,
-            label="D-aligned + new independents")
+    if independents_with_dem:
+        ax.hist(counts["dem_aligned"] + counts["new_independents"], bins=bins, color="#2a78d6", alpha=0.85,
+                label="D caucus (D + King, Sanders + new independents)")
+    else:
+        ax.hist(counts["dem_aligned"], bins=bins, color="#2a78d6", alpha=0.85, label="D-aligned (D + King, Sanders)")
+        ax.hist(counts["dem_aligned"] + counts["new_independents"], bins=bins, histtype="step", color="#888", lw=1.5,
+                label="D-aligned + new independents")
     ax.axvline(50.5, color="#c44", lw=1)
     ax.set(xlabel="seats", ylabel="simulations", title=title)
     ax.legend(frameon=False)

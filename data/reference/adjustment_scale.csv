@@ -1,0 +1,6 @@
+category,vote_share_points,margin_points,description,source
+scandal_corruption,3.0,6.0,"bribery, obstruction of justice, influence peddling","Basinger (2013), Scandals and Congressional Elections in the Post-Watergate Era: House, 1973-2010 scaled down"
+scandal_financial,2.0,4.0,"tax fraud, improper gifts, personal financial impropriety","Basinger (2013), Scandals and Congressional Elections in the Post-Watergate Era: House, 1973-2010"
+scandal_sexual,4.0,8.0,"affairs, sexual harassment, other sexual scandals","Basinger (2013), Scandals and Congressional Elections in the Post-Watergate Era: House, 1973-2010"
+scandal_political,0.0,0.0,"campaign-finance violations, disclosure violations","Basinger (2013), Scandals and Congressional Elections in the Post-Watergate Era: House, 1973-2010"
+scandal_average,3.0,6.0,"a scandal that fits no category above (the all-scandal average)","Basinger (2013), Scandals and Congressional Elections in the Post-Watergate Era: House, 1973-2010"

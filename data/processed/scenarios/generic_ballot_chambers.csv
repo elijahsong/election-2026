@@ -1,0 +1,4 @@
+scenario,generic ballot (D - R),House: mean race shift,House: median D seats,House: D seats 10%-90%,House: P(D 218+),House: races called D,Senate: mean race shift (D nominees),Senate: median D-caucus seats,Senate: D-caucus seats 10%-90%,Senate: P(D control),Senate: races called D
+R+4,4.699999999999996,-2.658659379600405,223.0,214–234,0.79525,223,-1.8477758244261497,51.0,48–53,0.575675,17
+baseline,8.699999999999996,0.0,232.0,222–244,0.961625,227,0.0,52.0,49–54,0.70845,17
+D+4,12.699999999999996,2.6586593796004054,242.0,230–255,0.99305,240,1.8477758244261502,52.0,50–55,0.816725,20

@@ -7,7 +7,7 @@
 | `house_model_a` | Model A |
 | `house_ensemble_ab_85_15` | 0.85 × Model A + 0.15 × Model B |
 
-- **Model A (polling):** `partisan_lean + gen_margin_raw + inc_signed + partisan_lean:inc_signed`, with the `inc_signed` coefficient fixed at **+2.5**.
+- **Model A (polling):** `partisan_lean + gen_margin_raw + inc_signed + partisan_lean:inc_signed + war_lag`, with the `inc_signed` coefficient fixed at **+2.5**. `war_lag` is the nominees' lagged Split Ticket WAR (`modeling.csv`'s `war_f` tranche), with the neutral 0 where neither nominee has an earlier WAR race.
 - **Model B (fundamentals):** `partisan_lean + fundraising_advantage + pres_party_signed:is_midterm + pres_party_signed:cpi_region_log_yoy`.
 - **Fitting:** both models use equal-year WLS. Each valid training race gets weight ∝ 1 / (valid training races in its year).
 
@@ -15,13 +15,15 @@ The module docstring records the methodological choices: the sign conventions, w
 
 On 2026-11-02, Model A dropped `gb_momentum_30d_raw` for parsimony. Momentum is national and nearly collinear with `gen_margin_raw` (r = 0.92 across elections). Its coefficient swung by 2–3 points when a single training election was left out, and it bought only about 0.1 MAE, mostly in 2018. The evidence is in `01_reg_model_a_no_momentum.ipynb` and `01_reg_generic_ballot_smoothing.ipynb`. Those notebooks, and the two above, were run with momentum still in Model A, so their numbers are for the earlier spec.
 
-Rolling out-of-sample results for the current spec, pooled over 2018–2024:
+On 2026-11-03, Model A added `war_lag`. Its coefficient is about 0.6 and stable across windows. On the same scored races it cut the ensemble's 2018–2024 MAE from 5.20 to 4.80, and its ex-ante competitive MAE from 4.70 to 4.28, with every year improving. It also cut the Monte Carlo's competitive Brier from 0.100 to 0.086. The evidence is in `01_reg_war.ipynb`, which keeps the earlier Model A as its baseline. The WAR history is a single vintage that Split Ticket recomputed in 2025, so that backtest isn't cleanly out of sample (`data-processing/README.md`).
 
-| subset | MAE | winners called |
-|---|---|---|
-| ex-ante competitive | 4.68 | 86.1% |
-| ex-post competitive | 5.87 | 74.8% |
-| all districts | 5.17 | 96.1% |
+Rolling out-of-sample results for the ensemble, pooled over 2018–2024, on the current data:
+
+| subset | n | MAE | winners called | before `war_lag`: MAE | winners called |
+|---|---|---|---|---|---|
+| ex-ante competitive | 353 | 4.28 | 88.1% | 4.70 | 86.1% |
+| ex-post competitive | 303 | 5.12 | 82.5% | 5.51 | 80.5% |
+| all districts | 1,597 | 4.80 | 96.6% | 5.20 | 96.1% |
 
 ## Rolling out-of-sample predictions (for Stage 2)
 

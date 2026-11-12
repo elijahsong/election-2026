@@ -102,6 +102,7 @@ These errors are well below the ACS's own margins of error for districts. The li
 # House modeling features (`house_features.py`)
 
 ```bash
+python data-processing/split_ticket_war.py       # first: -> data/processed/house/war_f.csv (see ../README.md)
 python data-processing/house/house_features.py   # -> data/processed/house/{basic_f,nat_political_f,acs_f,fec_f,prices_f,modeling}.csv
 ```
 
@@ -112,7 +113,8 @@ python data-processing/house/house_features.py   # -> data/processed/house/{basi
 | `acs_f.csv` | `year, state, district` | `acs_vintage` through `rel_state_housing_burden` from `acs_supplement.csv` |
 | `fec_f.csv` | `year, state, district` | `fundraising_advantage`, `spending_advantage`, `small_dollar_share_diff`, `dem_fec_missing`, `gop_fec_missing` from `data/processed/house_fec.csv` (see below) |
 | `prices_f.csv` | `year, state, district` | `census_region`, `price_data_month` and the 18 CPI-U / gasoline features of the district's Census region, from `data/processed/cpi_gas_region.csv` (`data-processing/cpi_gas.py`), then the eight unemployment features of its state, from `data/processed/unemployment_state.csv` (`data-processing/unemployment.py`); see `../README.md` |
-| `modeling.csv` | `year, state, district` | `basic_f`, `acs_f`, `fec_f` and `prices_f` joined on the key, then `nat_political_f` joined on `year` |
+| `war_f.csv` | `year, state, district` | `war_lag` (Model A's lagged Split Ticket WAR, the neutral 0 where missing) and `war_lag_available`. Written by `data-processing/split_ticket_war.py` and only read here (see `../README.md`) |
+| `modeling.csv` | `year, state, district` | `basic_f`, `acs_f`, `fec_f`, `prices_f` and `war_f` joined on the key, then `nat_political_f` joined on `year` |
 
 - **Joins:** the district tables must have unique keys and exactly the same keys, and no column may appear in two of
   them; otherwise the script raises.

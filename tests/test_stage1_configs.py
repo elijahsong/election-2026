@@ -18,12 +18,14 @@ def synthetic_tables(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame]:
         for d in range(1, 7 + 3 * (i % 3)):
             rows.append({"year": year, "state": "CA", "district": d, "partisan_lean": rng.uniform(-30, 30),
                          "gen_margin_raw": rng.uniform(-8, 8), "inc_signed": int(rng.choice([-1, 0, 1])),
-                         "fundraising_advantage": rng.uniform(-3, 3), "cpi_region_log_yoy": rng.uniform(0, 8)})
+                         "fundraising_advantage": rng.uniform(-3, 3), "cpi_region_log_yoy": rng.uniform(0, 8),
+                         # lagged WAR: the neutral 0 for about a third of races (no earlier WAR race), as in war_f.csv
+                         "war_lag": rng.normal(0, 5) if rng.uniform() < 0.67 else 0.0})
     predictors = pd.DataFrame(rows)
     predictors["gb_margin_2p_norm"] = predictors["gen_margin_raw"]  # the default ex-ante competitive subset uses it
     p = predictors
     signal = (1 + 1.0 * p["partisan_lean"] + 1.5 * p["gen_margin_raw"] + 6 * p["inc_signed"]
-              + 0.1 * p["partisan_lean"] * p["inc_signed"] + 2 * p["fundraising_advantage"])
+              + 0.1 * p["partisan_lean"] * p["inc_signed"] + 2 * p["fundraising_advantage"] + 0.6 * p["war_lag"])
     targets = p[["year", "state", "district"]].assign(**{TARGET: signal + rng.normal(0, 3, len(p))})
     targets = targets[targets["year"] < 2026].copy()
     targets["margin_2p_norm"] = targets[TARGET]
@@ -38,7 +40,7 @@ def rhs_terms(formula: str) -> set[str]:
 
 def test_predictor_definitions_are_fixed():
     assert rhs_terms(MODEL_A.formula) == {"Intercept", "partisan_lean", "gen_margin_raw", "inc_signed",
-                                          "partisan_lean:inc_signed"}  # no gb_momentum_30d_raw since 2026-11-02
+                                          "partisan_lean:inc_signed", "war_lag"}  # no momentum since 2026-11-02; WAR since 11-03
     assert dict(MODEL_A.fixed) == {"inc_signed": 2.5}
     assert rhs_terms(MODEL_B.formula) == {"Intercept", "partisan_lean", "fundraising_advantage",
                                           "pres_party_signed:is_midterm", "pres_party_signed:cpi_region_log_yoy"}
@@ -69,7 +71,7 @@ def test_model_a_is_equal_year_wls_with_incumbency_fixed_at_2_5():
     # by hand: weight each training race by 1 / (its year's training races) and regress y - 2.5 * inc_signed
     def design(rows):
         return np.column_stack([np.ones(len(rows)), rows["partisan_lean"], rows["gen_margin_raw"],
-                                rows["partisan_lean"] * rows["inc_signed"]])
+                                rows["partisan_lean"] * rows["inc_signed"], rows["war_lag"]])
 
     train = predictors[predictors["year"] < 2018].merge(targets, on=["year", "state", "district"])
     w = 1 / train["year"].map(train["year"].value_counts())

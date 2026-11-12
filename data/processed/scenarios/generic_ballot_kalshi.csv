@@ -1,0 +1,4 @@
+scenario,fixed bets: stake,fixed bets: expected profit,fixed bets: losing in expectation,fixed bets: unpriced,re-sized bets: n,re-sized bets: stake,re-sized bets: expected profit
+R+4,786.953578,863.9575508028466,0.0,0.0,33.0,818.76157121,796.486757468496
+baseline,786.953578,674.7853508028468,0.0,0.0,30.0,785.6518040000001,548.2623055768602
+D+4,786.953578,433.0894758028466,7.0,0.0,27.0,735.879055,434.78557208542657

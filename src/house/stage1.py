@@ -5,7 +5,7 @@
 
 Model A, polling (inc_signed's coefficient imposed at +2.5; every other coefficient is estimated):
 
-    adj_margin_2p_norm ~ partisan_lean + gen_margin_raw + 2.5 * inc_signed + partisan_lean:inc_signed
+    adj_margin_2p_norm ~ partisan_lean + gen_margin_raw + 2.5 * inc_signed + partisan_lean:inc_signed + war_lag
 
 Model B, fundamentals (every coefficient estimated):
 
@@ -18,6 +18,15 @@ then dropped gb_momentum_30d_raw (2026-11-02) for parsimony: it is national, nea
 (r = 0.92 across elections), and its coefficient swung by 2-3 points when one training election was dropped, for a
 small accuracy edge (about 0.1 MAE, mostly 2018). See 01_reg_model_a_no_momentum.ipynb and
 01_reg_generic_ballot_smoothing.ipynb, which were run with momentum still in Model A.
+
+Model A added war_lag on 2026-11-03, the nominees' lagged Split Ticket Wins Above Replacement (modeling.csv's war_f
+tranche: data-processing/split_ticket_war.py, src/congress/war.py). war_lag = 0.75 / 0.25 of the two most recent
+earlier House WAR years of either nominee, centered and D positive; a race with none gets the neutral 0
+(war_lag_available False), so no district is dropped. One coefficient, estimated (about 0.6). In the 2018-2024
+rolling backtest it cut the ensemble's MAE from 5.20 to 4.80 and its ex-ante competitive MAE from 4.70 to 4.28, in
+every year, and the Monte Carlo's competitive Brier from 0.100 to 0.086 (notebooks/house/stage1/01_reg_war.ipynb, which
+also keeps the earlier Model A as its baseline). Caveat: the WAR history is one vintage, recomputed by Split Ticket in
+2025, so that backtest is not cleanly out of sample. The notebooks above were run before war_lag.
 
 Methodological choices, all fixed by the configurations below:
 
@@ -108,7 +117,7 @@ class Stage1Config:
 
 MODEL_A = Component(
     "A_polling",
-    f"{TARGET} ~ partisan_lean + gen_margin_raw + inc_signed + partisan_lean:inc_signed",
+    f"{TARGET} ~ partisan_lean + gen_margin_raw + inc_signed + partisan_lean:inc_signed + war_lag",
     fixed={"inc_signed": 2.5},
 )
 MODEL_B = Component(

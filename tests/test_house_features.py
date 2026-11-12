@@ -22,7 +22,9 @@ def test_tables_join_and_keep_missing_generic_ballot_blank(monkeypatch):
     monkeypatch.setattr(hf, "FEC_KNOWN_GAPS", [])
     fec_f = hf.fec_features(fec)
     prices_f = keys.assign(census_region=["west", "south", "west"], cpi_region_yoy=[3.1, 2.4, None])
-    modeling = hf.modeling_table(basic, hf.acs_features(acs_supplement), fec_f, prices_f, nat)
+    war_f = keys.assign(war_lag=[0.0, 3.5, 0.0], war_lag_available=[False, True, False])
+    modeling = hf.modeling_table(basic, hf.acs_features(acs_supplement), fec_f, prices_f, war_f, nat)
+    assert modeling["war_lag"].tolist() == [0.0, 3.5, 0.0]
 
     assert list(basic.columns) == ["year", "state", "district", "gen_margin_raw", "partisan_lean", "inc_signed"]
     assert list(nat.columns) == ["year", "gb_cutoff_date", "gb_margin_raw", "gb_dem_pct", "gb_gop_pct", "gb_und_pct"]

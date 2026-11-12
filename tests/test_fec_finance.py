@@ -219,3 +219,18 @@ def test_an_independent_fills_the_gop_slot_as_the_republican_proxy(monkeypatch):
     slots = fec_finance.choose_slots(cands, ["year", "state", "district"], "house").set_index("slot")
     assert slots.loc["gop", ["name", "preset_status"]].tolist() == ["Kevin Kiley", "independent_as_gop"]
     assert slots.loc["dem", "name"] == "Richard Pan" and "ind" not in slots.index
+
+
+def test_pre_election_amounts_replace_the_cycle_totals_and_say_so():
+    # SYNTHETIC: two matched nominees, one with a pre-general record, one without
+    m = pd.DataFrame({"year": [2022, 2022], "state": "AA", "district": [1, 2], "candidate_id": ["H1", "H2"],
+                      **{f: [100.0, 50.0] for f in fec_finance.AMOUNTS},
+                      "coverage_start_date": ["2021-01-01", "2021-01-01"],
+                      "coverage_end_date": ["2022-12-31", "2022-12-31"]}).set_index(["year", "state", "district"])
+    pre = pd.DataFrame({"year": [2022], "candidate_id": ["H1"], "report_type": ["12G"],
+                        "coverage_end_date": pd.to_datetime(["2022-10-19"]),
+                        **{f: [80.0] for f in fec_finance.AMOUNTS}}).set_index(["year", "candidate_id"])
+    out = fec_finance.pre_election(m, pre)
+    assert out["receipts"].tolist() == [80.0, 50.0] and out["cycle_receipts"].tolist() == [100.0, 50.0]
+    assert out["fec_timing"].tolist() == ["pre_general_12G", "candidate_summary"]
+    assert out["coverage_end_date"].iloc[0] == pd.Timestamp("2022-10-19")

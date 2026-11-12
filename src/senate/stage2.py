@@ -10,7 +10,9 @@ two-party margin points (deterministic; no simulation).
          40/30/30 (PROVIDER_WEIGHTS) and renormalized over the providers that rated the race. The ratings' margins
          are averaged; their probability encodings (<provider>_prob_dem) are never used here
 
-Weights (WEIGHTS), fixed whatever the number of polls; never fitted:
+Weights (WEIGHTS, the production default), fixed whatever the number of polls; never fitted. blend takes any other
+weights of the same shape (check_weights: both cases, the three components, non-negative, summing to 1, and no polling
+weight without polls):
 
     case          fundamentals  polling  experts
     polling           0.37        0.54     0.09
@@ -48,6 +50,18 @@ WEIGHTS = {
 }
 
 
+def check_weights(weights: dict) -> None:
+    """Raise unless weights has the polling and no_polling cases, each over COMPONENTS, non-negative and summing to 1,
+    with no polling weight in the no_polling case."""
+    if set(weights) != set(WEIGHTS):
+        raise ValueError(f"weights need exactly the cases {sorted(WEIGHTS)}; got {sorted(weights)}")
+    for case, w in weights.items():
+        if set(w) != set(COMPONENTS) or min(w.values()) < 0 or not np.isclose(sum(w.values()), 1.0):
+            raise ValueError(f"{case} weights must cover {COMPONENTS}, be non-negative and sum to 1; got {w}")
+    if weights["no_polling"]["polling"] != 0:
+        raise ValueError("the no_polling case can't weight polling")
+
+
 def expert_margin(ratings: pd.DataFrame) -> pd.Series:
     """The 40/30/30 weighted mean of the providers' RATING_MARGIN, renormalized over the providers present; NaN for
     a race no provider rated."""
@@ -77,9 +91,12 @@ def _join(left: pd.DataFrame, right: pd.DataFrame, name: str) -> pd.DataFrame:
     return out.drop(columns=[f"special_{name}"])
 
 
-def blend(stage1_predictions: pd.DataFrame, polls: pd.DataFrame, ratings: pd.DataFrame) -> pd.DataFrame:
+def blend(stage1_predictions: pd.DataFrame, polls: pd.DataFrame, ratings: pd.DataFrame,
+          weights: dict = WEIGHTS) -> pd.DataFrame:
     """One row per Stage 1 prediction (KEY, special, prediction, actual, ...), with the three component margins,
-    their availability, the applied weights, the case and any fallback, the blended prediction and its residual."""
+    their availability, the applied weights, the case and any fallback, the blended prediction and its residual.
+    weights defaults to the production WEIGHTS."""
+    check_weights(weights)
     if stage1_predictions.duplicated(KEY).any():
         raise ValueError("Stage 1 predictions repeat a race")
     out = stage1_predictions.rename(columns={"prediction": "margin_fundamentals"})
@@ -94,7 +111,7 @@ def blend(stage1_predictions: pd.DataFrame, polls: pd.DataFrame, ratings: pd.Dat
     out["polling_available"], out["experts_available"] = available["polling"], available["experts"]
     out["weight_case"] = np.where(available["polling"], "polling", "no_polling")
 
-    base = pd.DataFrame([WEIGHTS[case] for case in out["weight_case"]], index=out.index)
+    base = pd.DataFrame([weights[case] for case in out["weight_case"]], index=out.index)[COMPONENTS]
     applied = base.where(available, 0.0)
     applied = applied.div(applied.sum(axis=1), axis=0)  # renormalize only when experts are missing
     for c in COMPONENTS:

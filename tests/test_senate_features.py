@@ -32,6 +32,7 @@ def test_fec_features_with_the_senate_key():
 
 def test_senate_modeling_columns_are_the_house_ones_less_state_comparisons():
     house = list(pd.read_csv("data/processed/house/modeling.csv", nrows=0).columns)
+    house_only = {"log_rel_state_income", "war_lag", "war_lag_available"}  # WAR: House Model A only (04_reg_war)
     expected = [{"district": "class"}.get(c, c) for c in house if not c.startswith("rel_state")
-                and c != "log_rel_state_income"]
+                and c not in house_only]
     assert list(senate_schema.MODELING) == expected
